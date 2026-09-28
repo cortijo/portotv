@@ -25,8 +25,12 @@ jobs:
       # nós mesmos, sem interação, e instalamos só a plataforma que falta.
       - name: Aceitar licenças e instalar a plataforma do Android
         run: |
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 2 -name sdkmanager -type f | sort -r | head -n1)"
-          echo "Usando $SDKMANAGER"
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT SDK_DIR=$SDK_DIR"
+          find "$SDK_DIR" -maxdepth 1 -mindepth 1
+          SDKMANAGER="$(find "$SDK_DIR" -iname sdkmanager -type f 2>/dev/null | sort -r | head -n1)"
+          echo "Usando: $SDKMANAGER"
+          test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
