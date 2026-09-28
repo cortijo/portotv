@@ -20,7 +20,7 @@ Contexto completo da decisão de arquitetura, identidade visual e o contrato de 
 
 ## O que ainda é placeholder
 
-- **`Provisioning.BASE_URL`** aponta para `https://api.portonet.net.br/tv`, um endereço de exemplo — trocar por onde o backend em `backend/` for publicado (ex.: `http://SEU_SERVIDOR:9966`). O contrato de requisição/resposta que o app espera está documentado no cabeçalho de `Provisioning.kt`, no doc do projeto e em `backend/README.md`.
+- **`Provisioning.BASE_URL`** aponta para `http://181.233.106.46:9966`, onde a API em `backend/` está sendo hospedada por enquanto. Se o endereço mudar (domínio próprio, HTTPS, etc.), trocar aqui e recompilar. O contrato de requisição/resposta que o app espera está documentado no cabeçalho de `Provisioning.kt`, no doc do projeto e em `backend/README.md`.
 - **Ícones e banner do launcher** (`res/mipmap-*`, `res/drawable/tv_banner.png`) foram gerados automaticamente a partir do logotipo sobre o azul da marca (`#01237C`) — servem para rodar e testar, mas o ideal é substituir por artes oficiais da Portonet quando existirem.
 
 ## Compilar
@@ -34,7 +34,7 @@ O workflow `.github/workflows/build.yml` já está pronto: em qualquer push a um
 Abrir a pasta `portonet-tv` no Android Studio (Koala ou mais novo) — ele baixa o Gradle/SDK necessários automaticamente — e rodar/compilar normalmente. Não há `gradlew` neste pacote (também depende de baixar o wrapper); o Android Studio resolve isso na primeira abertura, ou gere com `gradle wrapper --gradle-version 8.9` tendo o Gradle 8.9+ instalado à parte.
 
 ## Próximos passos sugeridos
-1. Subir o `backend/` (`docker compose up -d --build`, porta 9966) em algum servidor/domínio acessível pelo TV Box.
-2. Trocar `Provisioning.BASE_URL` pelo endereço real desse backend e recompilar o APK.
+1. Subir o `backend/` (`docker compose up -d --build`, porta 9966) em `181.233.106.46` (já configurado no app).
+2. Preencher a URL da playlist M3U e do EPG XMLTV no painel admin (`http://181.233.106.46:9966/admin.html`) e autorizar os UUIDs dos TV Boxes.
 3. Ícones/banner oficiais da Portonet, se/quando existirem em vetor.
 4. Testar em TV Box real com a lista M3U e o XMLTV de produção.

@@ -42,4 +42,4 @@ Tudo fica em `/data/portonet.db` (SQLite, via `node:sqlite` nativo do Node 22 �
 
 ## Conectar o app a esta API
 
-No projeto Android, `Provisioning.BASE_URL` (`app/src/main/java/br/com/portonet/tv/Provisioning.kt`) deve apontar para onde esta API for publicada, por exemplo `http://SEU_SERVIDOR:9966`. Ela expõe exatamente o endpoint `/sincronizar` que o app já chama.
+No projeto Android, `Provisioning.BASE_URL` (`app/src/main/java/br/com/portonet/tv/Provisioning.kt`) já aponta para `http://181.233.106.46:9966`, onde esta API roda por enquanto. Ela expõe exatamente o endpoint `/sincronizar` que o app já chama.

@@ -35,12 +35,12 @@ sealed class Sincronizacao {
  * para que uma revogação do lado do servidor derrube o app para a tela de
  * bloqueio sem precisar reiniciar o TV Box.
  *
- * A URL base é só um placeholder até a Portonet publicar o endpoint real —
- * trocar aqui não exige mudar mais nada no app.
+ * A URL base aponta para a API de provisionamento em `backend/` — trocar
+ * aqui não exige mudar mais nada no app.
  */
 object Provisioning {
 
-    private const val BASE_URL = "https://api.portonet.net.br/tv" // placeholder — ajustar quando o backend existir.
+    private const val BASE_URL = "http://181.233.106.46:9966"
     private const val PADRAO_INTERVALO_SEGUNDOS = 30 * 60L
     private const val PADRAO_TTL_SEGUNDOS = 6 * 60 * 60L
 
