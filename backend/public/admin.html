@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Portonet TV — Painel</title>
+<style>
+  :root {
+    --azul: #01237C;
+    --azul-vivo: #0857FF;
+    --cinza: #333333;
+    --cinza-claro: #7A7A7A;
+    --verde: #00991F;
+    --vermelho: #CC3366;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #F4F6FB;
+    color: var(--cinza);
+  }
+  header {
+    background: var(--azul);
+    color: #fff;
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: .8; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px; }
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .card h2 { font-size: 15px; margin: 0 0 14px; color: var(--azul); }
+  label { display: block; font-size: 12px; color: var(--cinza-claro); margin-bottom: 4px; margin-top: 10px; }
+  input[type=text], input[type=number], input[type=password] {
+    width: 100%; padding: 9px 10px; border: 1px solid #DADFE8; border-radius: 6px; font-size: 14px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 20px; }
+  button {
+    background: var(--azul-vivo); color: #fff; border: none; border-radius: 6px;
+    padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.secundario { background: #EEF1F8; color: var(--azul); }
+  button.perigo { background: var(--vermelho); }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--cinza-claro); font-weight: 600; font-size: 11px; text-transform: uppercase; padding: 8px 6px; border-bottom: 1px solid #EEF1F8; }
+  td { padding: 10px 6px; border-bottom: 1px solid #F4F6FB; vertical-align: middle; }
+  .uuid { font-family: monospace; font-size: 12px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge.ok { background: #E5F7E8; color: var(--verde); }
+  .badge.pendente { background: #FDEBF1; color: var(--vermelho); }
+  .acoes button { margin-right: 6px; padding: 6px 10px; font-size: 12px; }
+  #login { max-width: 360px; margin: 80px auto; text-align: center; }
+  #login .card { text-align: left; }
+  .aviso { background: #FFF6E5; border: 1px solid #F3D98B; color: #7A5B00; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+  .rodape-form { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+  .ok-msg { color: var(--verde); font-size: 12px; }
+  .vazio { color: var(--cinza-claro); font-size: 13px; padding: 20px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="card">
+    <h2>Portonet TV — entrar no painel</h2>
+    <label>Token de administrador</label>
+    <input type="password" id="tokenInput" placeholder="ADMIN_TOKEN" />
+    <div class="rodape-form">
+      <button onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="painel" style="display:none">
+  <header>
+    <div>
+      <h1>Portonet TV — Painel de provisionamento</h1>
+      <div class="sub">Autorize aparelhos e configure a playlist / EPG que o app sincroniza</div>
+    </div>
+    <button class="secundario" onclick="sair()">Sair</button>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Playlist e EPG</h2>
+      <div class="grid">
+        <div>
+          <label>URL da playlist M3U</label>
+          <input type="text" id="playlistUrl" placeholder="https://.../lista.m3u8" />
+        </div>
+        <div>
+          <label>URL do EPG (XMLTV)</label>
+          <input type="text" id="epgUrl" placeholder="https://.../guia.xml" />
+        </div>
+      </div>
+      <div class="grid3">
+        <div>
+          <label>TTL playlist (segundos)</label>
+          <input type="number" id="playlistTtl" />
+        </div>
+        <div>
+          <label>TTL EPG (segundos)</label>
+          <input type="number" id="epgTtl" />
+        </div>
+        <div>
+          <label>Intervalo de sincronização (segundos)</label>
+          <input type="number" id="syncInterval" />
+        </div>
+      </div>
+      <div class="rodape-form">
+        <button onclick="salvarConfig()">Salvar</button>
+        <span class="ok-msg" id="configMsg"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Aparelhos (<span id="totalAparelhos">0</span>)</h2>
+      <div id="avisoSemConteudo" class="aviso" style="display:none">
+        Nenhuma URL de playlist/EPG configurada acima — aparelhos ficam bloqueados mesmo autorizados até isso ser preenchido.
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>UUID</th>
+            <th>Apelido</th>
+            <th>Status</th>
+            <th>1ª sincronização</th>
+            <th>Última sincronização</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="listaAparelhos"></tbody>
+      </table>
+      <div class="vazio" id="vazioMsg" style="display:none">Nenhum aparelho sincronizou ainda.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+let token = localStorage.getItem('portonet_admin_token') || '';
+
+function api(caminho, opts = {}) {
+  return fetch(caminho, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token, ...(opts.headers || {}) },
+  }).then(async (r) => {
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || r.statusText);
+    return r.json();
+  });
+}
+
+function entrar() {
+  token = document.getElementById('tokenInput').value.trim();
+  if (!token) return;
+  api('/admin/api/config').then(() => {
+    localStorage.setItem('portonet_admin_token', token);
+    mostrarPainel();
+  }).catch(() => alert('Token inválido.'));
+}
+
+function sair() {
+  localStorage.removeItem('portonet_admin_token');
+  location.reload();
+}
+
+function mostrarPainel() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('painel').style.display = 'block';
+  carregarConfig();
+  carregarAparelhos();
+  setInterval(carregarAparelhos, 15000);
+}
+
+function carregarConfig() {
+  api('/admin/api/config').then((cfg) => {
+    document.getElementById('playlistUrl').value = cfg.playlist_url;
+    document.getElementById('epgUrl').value = cfg.epg_url;
+    document.getElementById('playlistTtl').value = cfg.playlist_ttl_seconds;
+    document.getElementById('epgTtl').value = cfg.epg_ttl_seconds;
+    document.getElementById('syncInterval').value = cfg.sync_interval_seconds;
+    document.getElementById('avisoSemConteudo').style.display = (!cfg.playlist_url || !cfg.epg_url) ? 'block' : 'none';
+  });
+}
+
+function salvarConfig() {
+  api('/admin/api/config', {
+    method: 'POST',
+    body: JSON.stringify({
+      playlist_url: document.getElementById('playlistUrl').value.trim(),
+      epg_url: document.getElementById('epgUrl').value.trim(),
+      playlist_ttl_seconds: Number(document.getElementById('playlistTtl').value),
+      epg_ttl_seconds: Number(document.getElementById('epgTtl').value),
+      sync_interval_seconds: Number(document.getElementById('syncInterval').value),
+    }),
+  }).then(() => {
+    const msg = document.getElementById('configMsg');
+    msg.textContent = 'Salvo.';
+    setTimeout(() => (msg.textContent = ''), 2000);
+    carregarConfig();
+  });
+}
+
+function formatarData(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR');
+}
+
+function carregarAparelhos() {
+  api('/admin/api/devices').then((lista) => {
+    document.getElementById('totalAparelhos').textContent = lista.length;
+    const corpo = document.getElementById('listaAparelhos');
+    document.getElementById('vazioMsg').style.display = lista.length === 0 ? 'block' : 'none';
+    corpo.innerHTML = lista.map((d) => `
+      <tr>
+        <td class="uuid">${d.device_id}</td>
+        <td>
+          <input type="text" value="${d.apelido || ''}" placeholder="ex.: Loja Centro"
+            style="width:140px;padding:5px 8px;font-size:12px"
+            onchange="salvarApelido('${d.device_id}', this.value)" />
+        </td>
+        <td><span class="badge ${d.autorizado ? 'ok' : 'pendente'}">${d.autorizado ? 'Autorizado' : 'Aguardando'}</span></td>
+        <td>${formatarData(d.primeira_vez)}</td>
+        <td>${formatarData(d.ultima_sincronizacao)}</td>
+        <td class="acoes">
+          ${d.autorizado
+            ? `<button class="perigo" onclick="revogar('${d.device_id}')">Revogar</button>`
+            : `<button onclick="autorizar('${d.device_id}')">Autorizar</button>`}
+          <button class="secundario" onclick="remover('${d.device_id}')">Remover</button>
+        </td>
+      </tr>
+    `).join('');
+  });
+}
+
+function autorizar(id) { api(`/admin/api/devices/${id}/autorizar`, { method: 'POST' }).then(carregarAparelhos); }
+function revogar(id) { api(`/admin/api/devices/${id}/revogar`, { method: 'POST' }).then(carregarAparelhos); }
+function remover(id) {
+  if (!confirm('Remover este aparelho da lista? Ele volta a aparecer se sincronizar de novo.')) return;
+  api(`/admin/api/devices/${id}`, { method: 'DELETE' }).then(carregarAparelhos);
+}
+function salvarApelido(id, apelido) { api(`/admin/api/devices/${id}/apelido`, { method: 'POST', body: JSON.stringify({ apelido }) }); }
+
+if (token) mostrarPainel();
+</script>
+</body>
+</html>

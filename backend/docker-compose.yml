@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    container_name: portonet-tv-api
+    restart: unless-stopped
+    ports:
+      - "9966:9966"
+    environment:
+      PORT: 9966
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-portonet}
+    volumes:
+      - portonet_data:/data
+
+volumes:
+  portonet_data:

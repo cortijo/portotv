@@ -8,3 +8,8 @@
 .externalNativeBuild
 .cxx
 build/
+
+# Backend (API de provisionamento)
+backend/node_modules/
+backend/data/
+backend/.env

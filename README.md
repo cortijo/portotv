@@ -16,12 +16,12 @@ Contexto completo da decisão de arquitetura, identidade visual e o contrato de 
 | `Playback.kt` | Monta o `MediaSource` certo do ExoPlayer (HLS `.m3u8`, DASH `.mpd`, ou progressivo para MPEG-TS bruto sem extensão) |
 | `LockActivity.kt` | Tela de bloqueio — único ponto de entrada do app, mostra o UUID e não libera o player até a API autorizar |
 | `PlayerActivity.kt` | O app propriamente dito: player em tela cheia, zapping (setas/CH+-/números), banner agora/próximo, lista lateral de canais, troca de fonte com tolerância a engasgo, ressincronização periódica para permitir revogação remota |
+| `backend/` | API de provisionamento (Node/Express + SQLite, Docker), implementa `GET /sincronizar` e o painel admin — ver `backend/README.md` |
 
 ## O que ainda é placeholder
 
-- **`Provisioning.BASE_URL`** aponta para `https://api.portonet.net.br/tv`, um endereço de exemplo — trocar por onde o backend real for publicado. O contrato de requisição/resposta que o app espera está documentado no cabeçalho de `Provisioning.kt` e no doc do projeto.
+- **`Provisioning.BASE_URL`** aponta para `https://api.portonet.net.br/tv`, um endereço de exemplo — trocar por onde o backend em `backend/` for publicado (ex.: `http://SEU_SERVIDOR:9966`). O contrato de requisição/resposta que o app espera está documentado no cabeçalho de `Provisioning.kt`, no doc do projeto e em `backend/README.md`.
 - **Ícones e banner do launcher** (`res/mipmap-*`, `res/drawable/tv_banner.png`) foram gerados automaticamente a partir do logotipo sobre o azul da marca (`#01237C`) — servem para rodar e testar, mas o ideal é substituir por artes oficiais da Portonet quando existirem.
-- Não há backend nesse repositório — só o cliente Android. Um servidor de teste simples (Node/Python) que devolva o JSON do contrato é suficiente para testar o app fim a fim antes do backend real existir.
 
 ## Compilar
 
@@ -34,6 +34,7 @@ O workflow `.github/workflows/build.yml` já está pronto: em qualquer push a um
 Abrir a pasta `portonet-tv` no Android Studio (Koala ou mais novo) — ele baixa o Gradle/SDK necessários automaticamente — e rodar/compilar normalmente. Não há `gradlew` neste pacote (também depende de baixar o wrapper); o Android Studio resolve isso na primeira abertura, ou gere com `gradle wrapper --gradle-version 8.9` tendo o Gradle 8.9+ instalado à parte.
 
 ## Próximos passos sugeridos
-1. Trocar `Provisioning.BASE_URL` pelo endpoint real assim que o backend existir.
-2. Ícones/banner oficiais da Portonet, se/quando existirem em vetor.
-3. Testar em TV Box real com a lista M3U e o XMLTV de produção.
+1. Subir o `backend/` (`docker compose up -d --build`, porta 9966) em algum servidor/domínio acessível pelo TV Box.
+2. Trocar `Provisioning.BASE_URL` pelo endereço real desse backend e recompilar o APK.
+3. Ícones/banner oficiais da Portonet, se/quando existirem em vetor.
+4. Testar em TV Box real com a lista M3U e o XMLTV de produção.

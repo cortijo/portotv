@@ -1,0 +1,17 @@
+{
+  "name": "portonet-tv-api",
+  "version": "1.0.0",
+  "description": "API de provisionamento do Portonet TV — sincroniza o UUID do TV Box e devolve a URL da playlist M3U e do EPG XMLTV.",
+  "private": true,
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
