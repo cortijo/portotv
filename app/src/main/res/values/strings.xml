@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Portonet TV</string>
+    <string name="bloqueio_titulo">Aguardando autorização</string>
+    <string name="bloqueio_instrucao">Informe este código ao suporte Portonet para liberar este aparelho:</string>
+    <string name="bloqueio_verificando">Verificando…</string>
+    <string name="bloqueio_erro_rede">Sem conexão com o servidor. Verifique a internet do aparelho.</string>
+</resources>

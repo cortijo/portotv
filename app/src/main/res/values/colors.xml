@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Extraídas do CSS renderizado de site.portonet.net.br em 2026-09-28
+         (ver doc "identidade-visual-portonet" do projeto), não estimadas. -->
+    <color name="portonet_azul_marinho">#01237C</color>
+    <color name="portonet_azul_vivo">#0857FF</color>
+    <color name="portonet_verde">#00991F</color>
+    <color name="portonet_cinza_texto">#333333</color>
+    <color name="portonet_cinza_claro">#7A7A7A</color>
+    <color name="branco">#FFFFFF</color>
+    <color name="preto">#000000</color>
+    <color name="overlay_video">#CC000000</color>
+</resources>

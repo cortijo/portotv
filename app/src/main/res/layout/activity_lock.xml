@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/portonet_azul_marinho"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="48dp">
+
+    <ImageView
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/logo_portonet" />
+
+    <TextView
+        android:id="@+id/titulo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/bloqueio_titulo"
+        android:textColor="@color/branco"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/bloqueio_instrucao"
+        android:textColor="@color/branco"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/uuid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/fundo_codigo"
+        android:fontFamily="monospace"
+        android:letterSpacing="0.05"
+        android:padding="16dp"
+        android:textColor="@color/portonet_azul_vivo"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        tools:text="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/bloqueio_verificando"
+        android:textColor="@color/portonet_azul_vivo"
+        android:textSize="14sp" />
+
+</LinearLayout>

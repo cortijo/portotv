@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/preto">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:use_controller="false"
+        app:resize_mode="fit" />
+
+    <!-- Banner "agora/próximo": aparece 3-4s ao trocar de canal e some
+         sozinho, igual à sensação de uma TV digital comum. -->
+    <LinearLayout
+        android:id="@+id/banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/overlay_video"
+        android:orientation="horizontal"
+        android:padding="24dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/bannerLogo"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/bannerNumeroNome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/branco"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                tools:text="05 · Globo" />
+
+            <TextView
+                android:id="@+id/bannerAgora"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/portonet_azul_vivo"
+                android:textSize="16sp" />
+
+            <ProgressBar
+                android:id="@+id/bannerProgresso"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="6dp"
+                android:max="1000"
+                android:progressTint="@color/portonet_azul_vivo" />
+
+            <TextView
+                android:id="@+id/bannerProximo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/portonet_cinza_claro"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Numpad: digitar o número do canal direto, como controle de TV a cabo. -->
+    <TextView
+        android:id="@+id/numpad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="32dp"
+        android:background="@color/overlay_video"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp"
+        android:textColor="@color/branco"
+        android:textSize="28sp"
+        android:visibility="gone"
+        tools:text="123" />
+
+    <!-- Lista lateral de canais — seta esquerda abre, VOLTAR fecha. -->
+    <FrameLayout
+        android:id="@+id/listaPainel"
+        android:layout_width="420dp"
+        android:layout_height="match_parent"
+        android:background="@color/overlay_video"
+        android:visibility="gone">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/listaCanais"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingVertical="16dp" />
+    </FrameLayout>
+
+</FrameLayout>

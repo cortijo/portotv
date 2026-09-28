@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PortonetTV" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">@color/portonet_azul_marinho</item>
+        <item name="colorAccent">@color/portonet_azul_vivo</item>
+        <item name="android:windowBackground">@color/portonet_azul_marinho</item>
+    </style>
+
+    <style name="Theme.PortonetTV.Lock">
+        <item name="android:windowBackground">@color/portonet_azul_marinho</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="Theme.PortonetTV.Player">
+        <item name="android:windowBackground">@color/preto</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>
