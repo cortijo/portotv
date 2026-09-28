@@ -17,8 +17,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      # O runner do GitHub já vem com um Android SDK pronto (ANDROID_HOME) e
+      # licenças aceitas. Não usamos a action android-actions/setup-android
+      # porque, ao detectar a versão do cmdline-tools "errada", ela baixa uma
+      # nova e tenta reaceitar as licenças de forma interativa — sem terminal
+      # para responder "y", o passo trava e falha. Aqui aceitamos as licenças
+      # nós mesmos, sem interação, e instalamos só a plataforma que falta.
+      - name: Aceitar licenças e instalar a plataforma do Android
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Gradle
         uses: gradle/actions/setup-gradle@v4
