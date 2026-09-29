@@ -52,6 +52,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var listaPainel: View
     private lateinit var listaCanais: RecyclerView
     private lateinit var numpad: TextView
+    private lateinit var manutencao: View
 
     private val handler = Handler(Looper.getMainLooper())
     private val relogio = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
@@ -103,6 +104,7 @@ class PlayerActivity : AppCompatActivity() {
         banner = findViewById(R.id.banner)
         listaPainel = findViewById(R.id.listaPainel)
         numpad = findViewById(R.id.numpad)
+        manutencao = findViewById(R.id.manutencao)
 
         listaCanais = findViewById(R.id.listaCanais)
         listaCanais.layoutManager = LinearLayoutManager(this)
@@ -185,6 +187,7 @@ class PlayerActivity : AppCompatActivity() {
         atual = indice
         fonteIndice = 0
         retentativas = 0
+        manutencao.visibility = View.GONE
         abrirFonteAtual()
         mostrarBanner()
         if (fecharLista) fecharListaCanais()
@@ -214,6 +217,10 @@ class PlayerActivity : AppCompatActivity() {
                 proximaFonte()
             }
         }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY) manutencao.visibility = View.GONE
+        }
     }
 
     private fun proximaFonte() {
@@ -222,9 +229,11 @@ class PlayerActivity : AppCompatActivity() {
             fonteIndice++
             retentativas = 0
             abrirFonteAtual()
+        } else {
+            // Esgotou as fontes desse canal — avisa em vez de deixar a
+            // imagem parada na última tentativa.
+            manutencao.visibility = View.VISIBLE
         }
-        // Sem próxima fonte: fica no que tem — trocar de canal sozinho seria
-        // pior do que deixar a imagem parada na última tentativa.
     }
 
     private fun canalAdjacente(delta: Int) {
