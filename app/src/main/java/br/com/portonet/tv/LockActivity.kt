@@ -31,21 +31,17 @@ class LockActivity : AppCompatActivity() {
         setContentView(R.layout.activity_lock)
 
         findViewById<android.widget.TextView>(R.id.uuid).text = DeviceId.get(this)
-
-        // Se já havia uma sincronização autorizada anterior em cache, o app
-        // não trava a tela de bloqueio à toa numa instabilidade momentânea
-        // de rede — ver seção 3.1 (resiliência) do documento de arquitetura.
-        Provisioning.cache(this)?.let {
-            ContentRepository.carregarCache(this)
-            if (ContentRepository.temConteudo) {
-                abrirPlayer()
-                return
-            }
-        }
-
         tentarSincronizar()
     }
 
+    /**
+     * Sempre tenta a rede primeiro — é assim que uma mudança no painel
+     * (canal novo, EPG associado, aparelho revogado) aparece já no próximo
+     * boot, em vez de só depois de até 30 min. O cache local só entra como
+     * plano B, se a rede falhar de verdade (sem isso, uma instabilidade
+     * momentânea não devia travar a tela de bloqueio à toa — ver seção 3.1
+     * do documento de arquitetura).
+     */
     private fun tentarSincronizar() {
         if (tentando) return
         tentando = true
@@ -73,12 +69,24 @@ class LockActivity : AppCompatActivity() {
                     agendarNovaTentativa()
                 }
                 Sincronizacao.Indisponivel -> {
+                    // Sem rede/servidor fora do ar — só aqui cai pro cache, pra
+                    // não deixar o aparelho preso na tela de bloqueio por uma
+                    // instabilidade momentânea.
+                    if (usarCacheSeDisponivel()) return@launch
                     status.setText(R.string.bloqueio_erro_rede)
                     agendarNovaTentativa()
                 }
             }
             tentando = false
         }
+    }
+
+    private fun usarCacheSeDisponivel(): Boolean {
+        val cache = Provisioning.cache(this) ?: return false
+        ContentRepository.carregarCache(this)
+        if (!ContentRepository.temConteudo) return false
+        abrirPlayer()
+        return true
     }
 
     private fun agendarNovaTentativa() {

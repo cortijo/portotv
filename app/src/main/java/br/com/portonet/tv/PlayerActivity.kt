@@ -62,10 +62,12 @@ class PlayerActivity : AppCompatActivity() {
     private val esconderBanner = Runnable { banner.visibility = View.GONE }
     private val confirmarNumpad = Runnable { confirmarNumero() }
 
+    private var intervaloSincMs = INTERVALO_SINC_PADRAO_MS
+
     private val tickSincroniza = object : Runnable {
         override fun run() {
             sincronizarPeriodicamente()
-            handler.postDelayed(this, INTERVALO_SINC_PADRAO_MS)
+            handler.postDelayed(this, intervaloSincMs)
         }
     }
 
@@ -77,6 +79,11 @@ class PlayerActivity : AppCompatActivity() {
         const val BANNER_MS = 4_000L
         const val NUMPAD_MS = 2_000L
         const val INTERVALO_SINC_PADRAO_MS = 30 * 60 * 1000L
+        // A primeira ressincronização em segundo plano é rápida — uma mudança
+        // no painel (canal, EPG, bloqueio) não deveria esperar até 30 min pra
+        // aparecer num app já aberto. Da segunda em diante usa o intervalo
+        // configurado no painel (sync_interval_seconds).
+        const val PRIMEIRA_SINC_MS = 60_000L
         const val SWIPE_DISTANCIA_MIN = 60
         const val SWIPE_VELOCIDADE_MIN = 200
     }
@@ -109,7 +116,8 @@ class PlayerActivity : AppCompatActivity() {
         adapter.submit(ContentRepository.channels)
         sintonizar(0, fecharLista = false)
 
-        handler.postDelayed(tickSincroniza, INTERVALO_SINC_PADRAO_MS)
+        Provisioning.cache(this)?.let { intervaloSincMs = it.intervaloSincSegundos * 1000L }
+        handler.postDelayed(tickSincroniza, PRIMEIRA_SINC_MS)
 
         configurarToqueDeTeste()
     }
@@ -268,7 +276,10 @@ class PlayerActivity : AppCompatActivity() {
     private fun sincronizarPeriodicamente() {
         lifecycleScope.launch {
             when (val resultado = Provisioning.sincronizar(this@PlayerActivity)) {
-                is Sincronizacao.Autorizado -> ContentRepository.atualizar(this@PlayerActivity, resultado)
+                is Sincronizacao.Autorizado -> {
+                    ContentRepository.atualizar(this@PlayerActivity, resultado)
+                    intervaloSincMs = resultado.intervaloSincSegundos * 1000L
+                }
                 is Sincronizacao.NaoAutorizado -> voltarParaBloqueio()
                 Sincronizacao.Indisponivel -> Unit // segue com o que já tem em memória/cache.
             }
