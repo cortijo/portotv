@@ -266,6 +266,44 @@
         <button onclick="salvarConfig()">Salvar</button>
         <span class="ok-msg" id="configMsg"></span>
       </div>
+      <div class="muted" style="margin-top:10px">
+        Um intervalo menor propaga mudanças (canal novo, aparelho bloqueado) mais rápido
+        pros TV Boxes já ligados, mas gera mais tráfego de sincronização. Servidores já em
+        produção mantêm o intervalo salvo anteriormente — o padrão de fábrica só vale pra
+        uma instalação nova.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Identidade Visual</h2>
+      <div class="info">
+        Cor de fundo, cor de destaque e logo aplicados pelo app na tela de bloqueio e
+        no guia de programação. Deixe em branco/cores padrão pra manter o visual atual
+        da Portonet.
+      </div>
+      <div class="grid3">
+        <div>
+          <label>Cor primária (fundo)</label>
+          <input type="color" id="temaCorPrimaria" />
+        </div>
+        <div>
+          <label>Cor de destaque ("agora", foco)</label>
+          <input type="color" id="temaCorDestaque" />
+        </div>
+        <div>
+          <label>Logo (URL)</label>
+          <input type="text" id="temaLogoUrl" placeholder="https://.../logo.png" />
+          <div class="upload-linha">
+            <label class="btn-upload" for="temaLogoArquivo">Enviar imagem</label>
+            <input type="file" id="temaLogoArquivo" accept=".png,.jpg,.jpeg,.svg,.webp" style="display:none" onchange="enviarArquivoLogo(this)" />
+            <span class="upload-msg" id="temaLogoUploadMsg"></span>
+          </div>
+        </div>
+      </div>
+      <div class="rodape-form">
+        <button onclick="salvarIdentidadeVisual()">Salvar identidade visual</button>
+        <span class="ok-msg" id="temaMsg"></span>
+      </div>
     </div>
 
     <div class="card">
@@ -367,6 +405,30 @@ function carregarConfig() {
     document.getElementById('playlistTtl').value = cfg.playlist_ttl_seconds;
     document.getElementById('epgTtl').value = cfg.epg_ttl_seconds;
     document.getElementById('syncInterval').value = cfg.sync_interval_seconds;
+    document.getElementById('temaCorPrimaria').value = cfg.tema_cor_primaria || '#01237C';
+    document.getElementById('temaCorDestaque').value = cfg.tema_cor_destaque || '#0857FF';
+    document.getElementById('temaLogoUrl').value = cfg.tema_logo_url || '';
+  });
+}
+
+// --- Identidade Visual ----------------------------------------------------
+
+function enviarArquivoLogo(inputEl) {
+  enviarArquivoGenerico(inputEl, 'temaLogoUploadMsg', (url) => { document.getElementById('temaLogoUrl').value = url; });
+}
+
+function salvarIdentidadeVisual() {
+  api('/admin/api/config', {
+    method: 'POST',
+    body: JSON.stringify({
+      tema_cor_primaria: document.getElementById('temaCorPrimaria').value,
+      tema_cor_destaque: document.getElementById('temaCorDestaque').value,
+      tema_logo_url: document.getElementById('temaLogoUrl').value.trim(),
+    }),
+  }).then(() => {
+    const msg = document.getElementById('temaMsg');
+    msg.textContent = 'Salvo.';
+    setTimeout(() => (msg.textContent = ''), 2000);
   });
 }
 

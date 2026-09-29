@@ -50,12 +50,12 @@ class EpgGridView @JvmOverloads constructor(
 
     private val relogio = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
 
-    private val corFundo = Color.parseColor("#081B5C")
-    private val corFundoCabecalho = Color.parseColor("#050F38")
+    private var corFundo = Color.parseColor("#081B5C")
+    private var corFundoCabecalho = Color.parseColor("#050F38")
     private val corBloco = Color.parseColor("#12308C")
-    private val corBlocoAgora = Color.parseColor("#0857FF")
+    private var corBlocoAgora = Color.parseColor("#0857FF")
     private val corBlocoFoco = Color.parseColor("#01237C")
-    private val corLinhaAgora = Color.parseColor("#FE506C")
+    private var corLinhaAgora = Color.parseColor("#FE506C")
     private val corTextoPrincipal = Color.WHITE
     private val corTextoSecundario = Color.parseColor("#B9C3E6")
     private val corDivisor = Color.parseColor("#1E2E7A")
@@ -96,6 +96,34 @@ class EpgGridView @JvmOverloads constructor(
             return true
         }
     })
+
+    /**
+     * Aplica cores vindas do painel (identidade visual) — quando algum dos
+     * hex é inválido/nulo, mantém o que já estava (nunca derruba a tela).
+     */
+    fun aplicarTema(corPrimaria: String?, corDestaque: String?) {
+        if (!corPrimaria.isNullOrBlank()) {
+            runCatching {
+                corFundo = Color.parseColor(corPrimaria)
+                corFundoCabecalho = escurecer(corFundo)
+            }
+        }
+        if (!corDestaque.isNullOrBlank()) {
+            runCatching {
+                val cor = Color.parseColor(corDestaque)
+                corBlocoAgora = cor
+                corLinhaAgora = cor
+            }
+        }
+        invalidate()
+    }
+
+    private fun escurecer(cor: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(cor, hsv)
+        hsv[2] *= 0.6f
+        return Color.HSVToColor(hsv)
+    }
 
     fun definir(canais: List<Channel>, epg: Map<String, List<Programme>>, canalAtual: Int) {
         this.canais = canais

@@ -103,7 +103,15 @@ const PADRAO = {
   epg_url: '',
   playlist_ttl_seconds: '21600',
   epg_ttl_seconds: '21600',
-  sync_interval_seconds: '1800',
+  // 2 min em vez de 30 — uma mudança no painel (canal novo, aparelho
+  // bloqueado) demora bem menos pra propagar pros TV Boxes já ligados.
+  // OBS: PADRAO só semeia a tabela config vazia (primeira execução) — um
+  // servidor já em produção mantém o valor que já tem salvo; ajustar esse
+  // aqui não muda nada num banco existente, é preciso trocar pelo painel.
+  sync_interval_seconds: '120',
+  tema_cor_primaria: '#01237C',
+  tema_cor_destaque: '#0857FF',
+  tema_logo_url: '',
 };
 
 const contarConfig = db.prepare('SELECT COUNT(*) AS n FROM config').get();

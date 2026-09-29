@@ -120,6 +120,9 @@ app.get('/sincronizar', (req, res) => {
     playlist_ttl_seconds: cfg.playlist_ttl_seconds,
     epg_ttl_seconds: cfg.epg_ttl_seconds,
     sync_interval_seconds: cfg.sync_interval_seconds,
+    tema_cor_primaria: cfg.tema_cor_primaria,
+    tema_cor_destaque: cfg.tema_cor_destaque,
+    tema_logo_url: cfg.tema_logo_url,
   });
 });
 
@@ -410,7 +413,7 @@ admin.get('/epg-inputs/:id/canais', async (req, res) => {
 // de hospedar o arquivo em outro lugar pra colar a URL na config. O
 // arquivo enviado vira uma URL própria em /arquivos/<nome>.
 // ---------------------------------------------------------------------
-const EXTENSOES_PERMITIDAS = new Set(['.m3u', '.m3u8', '.xml']);
+const EXTENSOES_PERMITIDAS = new Set(['.m3u', '.m3u8', '.xml', '.png', '.jpg', '.jpeg', '.svg', '.webp']);
 
 const upload = multer({
   storage: multer.diskStorage({

@@ -25,6 +25,10 @@ sealed class Sincronizacao {
         val playlistTtlSegundos: Long,
         val epgTtlSegundos: Long,
         val intervaloSincSegundos: Long,
+        /** Identidade visual vinda do painel — nulo quando não configurada, mantém o padrão do app. */
+        val temaCorPrimaria: String? = null,
+        val temaCorDestaque: String? = null,
+        val temaLogoUrl: String? = null,
     ) : Sincronizacao()
 
     /** [mensagem]: motivo do bloqueio, quando o suporte define um ao bloquear o aparelho no painel. */
@@ -82,6 +86,9 @@ object Provisioning {
                         playlistTtlSegundos = json.optLong("playlist_ttl_seconds", PADRAO_TTL_SEGUNDOS),
                         epgTtlSegundos = json.optLong("epg_ttl_seconds", PADRAO_TTL_SEGUNDOS),
                         intervaloSincSegundos = json.optLong("sync_interval_seconds", PADRAO_INTERVALO_SEGUNDOS),
+                        temaCorPrimaria = json.optString("tema_cor_primaria").ifBlank { null },
+                        temaCorDestaque = json.optString("tema_cor_destaque").ifBlank { null },
+                        temaLogoUrl = json.optString("tema_logo_url").ifBlank { null },
                     )
                     salvarCache(context, resultado)
                     resultado
@@ -139,6 +146,10 @@ object Provisioning {
             playlistTtlSegundos = json.optLong("playlist_ttl_seconds", PADRAO_TTL_SEGUNDOS),
             epgTtlSegundos = json.optLong("epg_ttl_seconds", PADRAO_TTL_SEGUNDOS),
             intervaloSincSegundos = json.optLong("sync_interval_seconds", PADRAO_INTERVALO_SEGUNDOS),
+            // optString tolera cache antigo (gravado antes deste campo existir).
+            temaCorPrimaria = json.optString("tema_cor_primaria").ifBlank { null },
+            temaCorDestaque = json.optString("tema_cor_destaque").ifBlank { null },
+            temaLogoUrl = json.optString("tema_logo_url").ifBlank { null },
         )
     }.getOrNull()
 
@@ -149,6 +160,9 @@ object Provisioning {
             put("playlist_ttl_seconds", autorizado.playlistTtlSegundos)
             put("epg_ttl_seconds", autorizado.epgTtlSegundos)
             put("sync_interval_seconds", autorizado.intervaloSincSegundos)
+            autorizado.temaCorPrimaria?.let { put("tema_cor_primaria", it) }
+            autorizado.temaCorDestaque?.let { put("tema_cor_destaque", it) }
+            autorizado.temaLogoUrl?.let { put("tema_logo_url", it) }
         }
         runCatching { File(context.filesDir, "provisioning_cache.json").writeText(json.toString()) }
     }

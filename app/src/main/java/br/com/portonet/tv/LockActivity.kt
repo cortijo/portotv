@@ -1,11 +1,13 @@
 package br.com.portonet.tv
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import coil3.load
 import kotlinx.coroutines.launch
 
 /**
@@ -52,6 +54,7 @@ class LockActivity : AppCompatActivity() {
             when (val resultado = Provisioning.sincronizar(this@LockActivity)) {
                 is Sincronizacao.Autorizado -> {
                     ContentRepository.atualizar(this@LockActivity, resultado)
+                    aplicarIdentidadeVisual(resultado)
                     if (ContentRepository.temConteudo) {
                         abrirPlayer()
                         return@launch
@@ -85,8 +88,22 @@ class LockActivity : AppCompatActivity() {
         val cache = Provisioning.cache(this) ?: return false
         ContentRepository.carregarCache(this)
         if (!ContentRepository.temConteudo) return false
+        aplicarIdentidadeVisual(cache)
         abrirPlayer()
         return true
+    }
+
+    /**
+     * Cor de fundo e logo vindos do painel — quando ausentes ou inválidos,
+     * mantém o azul-marinho e o logo padrão do app (nunca derruba a tela).
+     */
+    private fun aplicarIdentidadeVisual(autorizado: Sincronizacao.Autorizado) {
+        autorizado.temaCorPrimaria?.let { hex ->
+            runCatching { findViewById<android.view.View>(R.id.fundoBloqueio).setBackgroundColor(Color.parseColor(hex)) }
+        }
+        autorizado.temaLogoUrl?.let { url ->
+            runCatching { findViewById<android.widget.ImageView>(R.id.logo).load(url) }
+        }
     }
 
     private fun agendarNovaTentativa() {
