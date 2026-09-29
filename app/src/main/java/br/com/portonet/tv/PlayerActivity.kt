@@ -4,7 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -32,6 +34,10 @@ import java.util.Locale
  *  - 0-9: monta o número do canal, confirma sozinho após um instante.
  *  - VOLTAR: fecha a lista se estiver aberta; senão não faz nada (não há
  *    "sair" do app — é a própria TV).
+ *
+ * Em telas de toque (útil pra testar no celular antes de ter um TV Box à
+ * mão): deslizar pra cima/baixo troca de canal, e tocar abre/fecha a lista
+ * — só um atalho de teste, não substitui o controle remoto no TV Box real.
  */
 @UnstableApi
 class PlayerActivity : AppCompatActivity() {
@@ -63,12 +69,16 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private lateinit var gestureDetector: GestureDetector
+
     private companion object {
         const val SOURCE_TIMEOUT_MS = 12_000L
         const val RETENTATIVAS_MAX = 3
         const val BANNER_MS = 4_000L
         const val NUMPAD_MS = 2_000L
         const val INTERVALO_SINC_PADRAO_MS = 30 * 60 * 1000L
+        const val SWIPE_DISTANCIA_MIN = 60
+        const val SWIPE_VELOCIDADE_MIN = 200
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,6 +110,38 @@ class PlayerActivity : AppCompatActivity() {
         sintonizar(0, fecharLista = false)
 
         handler.postDelayed(tickSincroniza, INTERVALO_SINC_PADRAO_MS)
+
+        configurarToqueDeTeste()
+    }
+
+    // --- Toque (atalho de teste em celular, não substitui o controle remoto) --
+
+    private fun configurarToqueDeTeste() {
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent) = true
+
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (listaPainel.visibility == View.VISIBLE) fecharListaCanais() else abrirListaCanais()
+                return true
+            }
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (e1 == null || listaPainel.visibility == View.VISIBLE) return false
+                val deltaY = e2.y - e1.y
+                val deltaX = e2.x - e1.x
+                if (kotlin.math.abs(deltaY) <= kotlin.math.abs(deltaX)) return false
+                if (kotlin.math.abs(deltaY) < SWIPE_DISTANCIA_MIN || kotlin.math.abs(velocityY) < SWIPE_VELOCIDADE_MIN) return false
+                if (deltaY < 0) canalAdjacente(-1) else canalAdjacente(1)
+                return true
+            }
+        })
+
+        playerView.setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
     }
 
     // --- Zapping -------------------------------------------------------
