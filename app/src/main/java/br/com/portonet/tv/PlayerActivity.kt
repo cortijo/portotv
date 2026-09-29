@@ -8,8 +8,6 @@ import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -93,9 +91,6 @@ class PlayerActivity : AppCompatActivity() {
         const val PRIMEIRA_SINC_MS = 60_000L
         const val SWIPE_DISTANCIA_MIN = 60
         const val SWIPE_VELOCIDADE_MIN = 200
-        const val PIP_LARGURA_DP = 320
-        const val PIP_ALTURA_DP = 180
-        const val PIP_MARGEM_DP = 24
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -289,44 +284,10 @@ class PlayerActivity : AppCompatActivity() {
         banner.visibility = View.GONE
         epgGrid.definir(adapter.channels, ContentRepository.epg, atual)
         epgGrid.visibility = View.VISIBLE
-        encolherPlayerEmPip()
     }
 
     private fun fecharEpgGrid() {
         epgGrid.visibility = View.GONE
-        restaurarPlayerEmTelaCheia()
-    }
-
-    /**
-     * Encolhe o vídeo num "canto" (estilo PiP) enquanto o guia está aberto,
-     * sem soltar/recriar o player — só reposiciona a PlayerView, que segue
-     * tocando normalmente por baixo da grade. A grade fica atrás, o vídeo
-     * flutua por cima (elevação), então não precisa recalcular o desenho
-     * do EpgGridView.
-     */
-    private fun encolherPlayerEmPip() {
-        val densidade = resources.displayMetrics.density
-        val largura = (PIP_LARGURA_DP * densidade).toInt()
-        val altura = (PIP_ALTURA_DP * densidade).toInt()
-        val margem = (PIP_MARGEM_DP * densidade).toInt()
-        playerView.layoutParams = (playerView.layoutParams as FrameLayout.LayoutParams).apply {
-            width = largura
-            height = altura
-            gravity = android.view.Gravity.TOP or android.view.Gravity.START
-            setMargins(margem, margem, 0, 0)
-        }
-        playerView.elevation = 24f
-        playerView.bringToFront()
-    }
-
-    private fun restaurarPlayerEmTelaCheia() {
-        playerView.layoutParams = (playerView.layoutParams as FrameLayout.LayoutParams).apply {
-            width = ViewGroup.LayoutParams.MATCH_PARENT
-            height = ViewGroup.LayoutParams.MATCH_PARENT
-            gravity = android.view.Gravity.NO_GRAVITY
-            setMargins(0, 0, 0, 0)
-        }
-        playerView.elevation = 0f
     }
 
     // --- Numpad --------------------------------------------------------
