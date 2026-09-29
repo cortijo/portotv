@@ -129,7 +129,13 @@ class PlayerActivity : AppCompatActivity() {
             override fun onDown(e: MotionEvent) = true
 
             override fun onSingleTapUp(e: MotionEvent): Boolean {
-                if (listaPainel.visibility == View.VISIBLE) fecharListaCanais() else abrirListaCanais()
+                // Tocar no meio da tela mostra o banner com o canal atual e a
+                // programação (agora/próximo) — igual apertar "info" no controle.
+                if (listaPainel.visibility == View.VISIBLE) {
+                    fecharListaCanais()
+                } else {
+                    mostrarBanner()
+                }
                 return true
             }
 
@@ -142,7 +148,15 @@ class PlayerActivity : AppCompatActivity() {
                 if (e1 == null || listaPainel.visibility == View.VISIBLE) return false
                 val deltaY = e2.y - e1.y
                 val deltaX = e2.x - e1.x
-                if (kotlin.math.abs(deltaY) <= kotlin.math.abs(deltaX)) return false
+
+                if (kotlin.math.abs(deltaX) > kotlin.math.abs(deltaY)) {
+                    // Horizontal: deslizar da direita pra esquerda abre a lista de
+                    // canais, igual a seta esquerda do controle remoto.
+                    if (kotlin.math.abs(deltaX) < SWIPE_DISTANCIA_MIN || kotlin.math.abs(velocityX) < SWIPE_VELOCIDADE_MIN) return false
+                    if (deltaX < 0) abrirListaCanais()
+                    return true
+                }
+
                 if (kotlin.math.abs(deltaY) < SWIPE_DISTANCIA_MIN || kotlin.math.abs(velocityY) < SWIPE_VELOCIDADE_MIN) return false
                 if (deltaY < 0) canalAdjacente(-1) else canalAdjacente(1)
                 return true
