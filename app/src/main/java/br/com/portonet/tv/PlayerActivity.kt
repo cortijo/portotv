@@ -49,6 +49,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var player: ExoPlayer
     private lateinit var playerView: PlayerView
     private lateinit var banner: View
+    private lateinit var manutencao: View
     private lateinit var listaPainel: View
     private lateinit var listaCanais: RecyclerView
     private lateinit var numpad: TextView
@@ -101,6 +102,7 @@ class PlayerActivity : AppCompatActivity() {
 
         playerView = findViewById(R.id.playerView)
         banner = findViewById(R.id.banner)
+        manutencao = findViewById(R.id.manutencao)
         listaPainel = findViewById(R.id.listaPainel)
         numpad = findViewById(R.id.numpad)
 
@@ -125,6 +127,7 @@ class PlayerActivity : AppCompatActivity() {
 
         Provisioning.cache(this)?.let { intervaloSincMs = it.intervaloSincSegundos * 1000L }
         handler.postDelayed(tickSincroniza, PRIMEIRA_SINC_MS)
+        EventosSse.observar(lifecycleScope) { sincronizarPeriodicamente() }
 
         configurarToqueDeTeste()
     }
@@ -185,6 +188,7 @@ class PlayerActivity : AppCompatActivity() {
         atual = indice
         fonteIndice = 0
         retentativas = 0
+        manutencao.visibility = View.GONE
         abrirFonteAtual()
         mostrarBanner()
         if (fecharLista) fecharListaCanais()
@@ -214,6 +218,14 @@ class PlayerActivity : AppCompatActivity() {
                 proximaFonte()
             }
         }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            // Sinal de que a reprodução se recuperou: some com o overlay de
+            // manutenção, se estiver visível.
+            if (playbackState == Player.STATE_READY && manutencao.visibility == View.VISIBLE) {
+                manutencao.visibility = View.GONE
+            }
+        }
     }
 
     private fun proximaFonte() {
@@ -222,9 +234,12 @@ class PlayerActivity : AppCompatActivity() {
             fonteIndice++
             retentativas = 0
             abrirFonteAtual()
+        } else {
+            // Sem próxima fonte: todas as fontes deste canal esgotaram as
+            // retentativas — mostra o aviso em vez de deixar a imagem
+            // parada na última tentativa, sem trocar de canal sozinho.
+            manutencao.visibility = View.VISIBLE
         }
-        // Sem próxima fonte: fica no que tem — trocar de canal sozinho seria
-        // pior do que deixar a imagem parada na última tentativa.
     }
 
     private fun canalAdjacente(delta: Int) {
