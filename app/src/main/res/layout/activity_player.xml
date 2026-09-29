@@ -89,34 +89,6 @@
         android:visibility="gone"
         tools:text="123" />
 
-    <!-- Overlay de canal indisponível: todas as fontes do canal atual
-         falharam depois de esgotar as retentativas. Cobre o player até o
-         usuário sintonizar um canal/fonte que funcione. -->
-    <LinearLayout
-        android:id="@+id/manutencao"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/portonet_azul_marinho"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <ImageView
-            android:layout_width="220dp"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/logo_portonet" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/canal_em_manutencao"
-            android:textColor="@color/branco"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
     <!-- Lista lateral de canais — seta esquerda abre, VOLTAR fecha. -->
     <FrameLayout
         android:id="@+id/listaPainel"

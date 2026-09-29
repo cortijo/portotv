@@ -4,8 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
-import android.os.Build
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -50,7 +48,7 @@ sealed class Sincronizacao {
  */
 object Provisioning {
 
-    internal const val BASE_URL = "http://181.233.106.46:9966"
+    private const val BASE_URL = "http://181.233.106.46:9966"
     private const val PADRAO_INTERVALO_SEGUNDOS = 30 * 60L
     private const val PADRAO_TTL_SEGUNDOS = 6 * 60 * 60L
 
@@ -115,47 +113,14 @@ object Provisioning {
 
     private data class SinalWifi(val dbm: Int, val nivel: Int)
 
-    /**
-     * Força do sinal Wi-Fi atual: dBm bruto + nível 0-4, só quando conectado
-     * por Wi-Fi.
-     *
-     * Caminho preferido (API 29+): `NetworkCapabilities.getSignalStrength()`
-     * via `ConnectivityManager` — devolve o dBm sem precisar de permissão de
-     * localização. Caminho de fallback (API < 29, ou se o primeiro não
-     * devolver nada usável): `WifiManager.connectionInfo.rssi`, que desde o
-     * Android 9 só vem preenchido de verdade com ACCESS_FINE_LOCATION
-     * concedida (ver AndroidManifest.xml) — sem ela, devolve um valor
-     * fixo/inválido (0 ou Int.MIN_VALUE), motivo mais provável de o sinal
-     * nunca ter chegado ao servidor até agora.
-     */
+    /** Força do sinal Wi-Fi atual: dBm bruto + nível 0-4, só quando conectado por Wi-Fi. */
     @Suppress("DEPRECATION")
     private fun sinalWifi(context: Context): SinalWifi? = runCatching {
-        val dbmNovaApi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            runCatching {
-                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                val caps = cm.getNetworkCapabilities(cm.activeNetwork)
-                if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                    caps.signalStrength.takeIf { it != Int.MIN_VALUE }
-                } else {
-                    null
-                }
-            }.onFailure { Log.w("Provisioning", "sinalWifi: falha lendo NetworkCapabilities", it) }.getOrNull()
-        } else {
-            null
-        }
-
-        val dbm = dbmNovaApi ?: run {
-            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            val rssi = wm?.connectionInfo?.rssi
-            if (rssi == null || rssi == 0 || rssi == Int.MIN_VALUE) null else rssi
-        }
-
-        if (dbm == null) {
-            Log.w("Provisioning", "sinalWifi: nenhuma leitura válida de RSSI (NetworkCapabilities nem WifiManager)")
-            return@runCatching null
-        }
-        SinalWifi(dbm = dbm, nivel = WifiManager.calculateSignalLevel(dbm, 5))
-    }.onFailure { Log.w("Provisioning", "sinalWifi: falha inesperada", it) }.getOrNull()
+        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return null
+        val rssi = wm.connectionInfo?.rssi ?: return null
+        if (rssi == 0 || rssi == Int.MIN_VALUE) return null // sem leitura válida
+        SinalWifi(dbm = rssi, nivel = WifiManager.calculateSignalLevel(rssi, 5))
+    }.getOrNull()
 
     /**
      * Uso de processamento do aparelho, normalizado 0-100 — lido de
@@ -169,7 +134,7 @@ object Provisioning {
         val cargaMediaUmMin = primeiraColuna.toFloat()
         val nucleos = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         ((cargaMediaUmMin / nucleos) * 100).toInt().coerceIn(0, 100)
-    }.onFailure { Log.w("Provisioning", "cpuPercentual: falha lendo /proc/loadavg", it) }.getOrNull()
+    }.getOrNull()
 
     /** Última sincronização autorizada com sucesso, sem tocar na rede. */
     fun cache(context: Context): Sincronizacao.Autorizado? = runCatching {

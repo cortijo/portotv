@@ -30,49 +30,6 @@ function agoraISO() {
   return new Date().toISOString();
 }
 
-// ---------------------------------------------------------------------
-// Eventos em tempo real (Server-Sent Events) — pra canal novo, bloqueio ou
-// revogação chegarem no app na hora, sem esperar a próxima sincronização
-// periódica. Unidirecional (servidor -> app), simples o bastante pra não
-// precisar de infra nova (sem Firebase, sem WebSocket).
-// ---------------------------------------------------------------------
-const clientesEventos = new Set();
-
-app.get('/eventos', (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  });
-  res.flushHeaders?.();
-  res.write(': conectado\n\n');
-  clientesEventos.add(res);
-
-  const ping = setInterval(() => {
-    try {
-      res.write(': ping\n\n');
-    } catch {
-      clearInterval(ping);
-      clientesEventos.delete(res);
-    }
-  }, 20_000);
-
-  req.on('close', () => {
-    clearInterval(ping);
-    clientesEventos.delete(res);
-  });
-});
-
-function avisarClientes(motivo) {
-  for (const res of clientesEventos) {
-    try {
-      res.write(`data: ${motivo}\n\n`);
-    } catch {
-      clientesEventos.delete(res);
-    }
-  }
-}
-
 function registrarAcesso(deviceId, status, req) {
   db.prepare(
     'INSERT INTO acessos (device_id, status, ip, user_agent, quando) VALUES (?, ?, ?, ?, ?)'
@@ -216,14 +173,12 @@ admin.get('/devices', (_req, res) => {
 admin.post('/devices/:id/autorizar', (req, res) => {
   const info = db.prepare('UPDATE devices SET autorizado = 1, mensagem_bloqueio = NULL WHERE device_id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
-  avisarClientes('dispositivos');
   res.json({ ok: true });
 });
 
 admin.post('/devices/:id/revogar', (req, res) => {
   const info = db.prepare('UPDATE devices SET autorizado = 0, mensagem_bloqueio = NULL WHERE device_id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
-  avisarClientes('dispositivos');
   res.json({ ok: true });
 });
 
@@ -236,7 +191,6 @@ admin.post('/devices/:id/bloquear', (req, res) => {
   const mensagem = String(req.body?.mensagem || '').trim().slice(0, 300) || MENSAGEM_BLOQUEIO_PADRAO;
   const info = db.prepare('UPDATE devices SET autorizado = 0, mensagem_bloqueio = ? WHERE device_id = ?').run(mensagem, req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
-  avisarClientes('dispositivos');
   res.json({ ok: true, mensagem });
 });
 
@@ -299,7 +253,6 @@ admin.post('/canais', (req, res) => {
   ).run(String(nome).trim(), numero ? Number(numero) : null, logo || null, grupo || null, agoraISO());
   db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, 0)').run(info.lastInsertRowid, String(url).trim());
 
-  avisarClientes('catalogo');
   res.json(canalComFontes(info.lastInsertRowid));
 });
 
@@ -318,13 +271,11 @@ admin.put('/canais/:id', (req, res) => {
     ativo === false ? 0 : 1,
     req.params.id
   );
-  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.id));
 });
 
 admin.delete('/canais/:id', (req, res) => {
   db.prepare('DELETE FROM canais WHERE id = ?').run(req.params.id);
-  avisarClientes('catalogo');
   res.json({ ok: true });
 });
 
@@ -336,13 +287,11 @@ admin.post('/canais/:id/fontes', (req, res) => {
 
   const maxOrdem = db.prepare('SELECT COALESCE(MAX(ordem), -1) AS m FROM fontes WHERE canal_id = ?').get(req.params.id);
   db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, ?)').run(req.params.id, String(url).trim(), maxOrdem.m + 1);
-  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.id));
 });
 
 admin.delete('/canais/:canalId/fontes/:fonteId', (req, res) => {
   db.prepare('DELETE FROM fontes WHERE id = ? AND canal_id = ?').run(req.params.fonteId, req.params.canalId);
-  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.canalId));
 });
 
@@ -356,7 +305,6 @@ admin.post('/canais/:id/associar-epg', (req, res) => {
     epg_canal_id || null,
     req.params.id
   );
-  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.id));
 });
 
@@ -405,7 +353,6 @@ admin.post('/canais/importar-selecionados', (req, res) => {
     importados++;
   }
 
-  if (importados > 0) avisarClientes('catalogo');
   res.json({ ok: true, importados });
 });
 

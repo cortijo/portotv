@@ -4,12 +4,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- Desde o Android 9 (API 28), o RSSI do Wi-Fi via WifiManager só vem
-         preenchido de verdade se o app tiver esta permissão concedida — sem
-         ela, connectionInfo.rssi devolve um valor fixo/inválido. Não é usada
-         para localização de fato (TV Box não tem GPS), só destrava a leitura
-         do sinal Wi-Fi. -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <uses-feature
         android:name="android.software.leanback"
