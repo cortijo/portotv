@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Badge redondo com o número do canal, ao lado da logo no card do player. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/portonet_azul_vivo" />
+    <corners android:radius="20dp" />
+</shape>

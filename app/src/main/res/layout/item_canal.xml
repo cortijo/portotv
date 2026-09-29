@@ -49,4 +49,13 @@
             android:textSize="12sp"
             tools:text="Jornal Nacional" />
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/favorito"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_favorito_on"
+        android:visibility="gone" />
 </LinearLayout>

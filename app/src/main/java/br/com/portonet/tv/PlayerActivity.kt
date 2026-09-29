@@ -153,6 +153,12 @@ class PlayerActivity : AppCompatActivity() {
                 return true
             }
 
+            override fun onLongPress(e: MotionEvent) {
+                // Segurar o toque favorita o canal atual — equivalente ao
+                // segurar OK no controle remoto.
+                if (listaPainel.visibility != View.VISIBLE) alternarFavoritoCanalAtual()
+            }
+
             override fun onFling(
                 e1: MotionEvent?,
                 e2: MotionEvent,
@@ -249,27 +255,76 @@ class PlayerActivity : AppCompatActivity() {
     private fun mostrarBanner() {
         val canal = adapter.channels.getOrNull(atual) ?: return
         banner.visibility = View.VISIBLE
+
         findViewById<android.widget.ImageView>(R.id.bannerLogo).load(canal.logo)
-        findViewById<TextView>(R.id.bannerNumeroNome).text =
-            "${formatarNumeroCanal(canal.number)} · ${canal.name}"
+        findViewById<TextView>(R.id.bannerNumero).text = formatarNumeroCanal(canal.number)
+        findViewById<TextView>(R.id.bannerNome).text = canal.name
+
+        val categoriaView = findViewById<TextView>(R.id.bannerCategoria)
+        if (!canal.group.isNullOrBlank()) {
+            categoriaView.text = canal.group
+            categoriaView.visibility = View.VISIBLE
+        } else {
+            categoriaView.visibility = View.GONE
+        }
+
+        atualizarFavorito(canal)
 
         val par = Epg.nowNext(ContentRepository.epg, canal.tvgId, System.currentTimeMillis())
-        val agoraView = findViewById<TextView>(R.id.bannerAgora)
+        val programaView = findViewById<TextView>(R.id.bannerPrograma)
+        val sinopseView = findViewById<TextView>(R.id.bannerSinopse)
+        val horarioView = findViewById<TextView>(R.id.bannerHorario)
+        val restanteView = findViewById<TextView>(R.id.bannerRestante)
         val proximoView = findViewById<TextView>(R.id.bannerProximo)
         val progresso = findViewById<ProgressBar>(R.id.bannerProgresso)
 
         if (par != null) {
             val (agora, proximo) = par
-            agoraView.text = "${relogio.format(agora.start)} ${agora.title}"
+            val agoraMs = System.currentTimeMillis()
+            programaView.text = agora.title
+            sinopseView.text = agora.description
+            sinopseView.visibility = if (agora.description.isNullOrBlank()) View.GONE else View.VISIBLE
+            horarioView.text = "${relogio.format(agora.start)} – ${relogio.format(agora.stop)}"
+            restanteView.text = formatarDuracao(agora.stop - agoraMs)
             progresso.visibility = View.VISIBLE
-            progresso.progress = (agora.progress(System.currentTimeMillis()) * 1000).toInt()
+            progresso.progress = (agora.progress(agoraMs) * 1000).toInt()
             proximoView.text = proximo?.let { "A seguir: ${relogio.format(it.start)} ${it.title}" } ?: ""
+            proximoView.visibility = if (proximo != null) View.VISIBLE else View.GONE
         } else {
-            agoraView.text = ""
+            programaView.text = canal.name
+            sinopseView.visibility = View.GONE
+            horarioView.text = ""
+            restanteView.text = ""
             progresso.visibility = View.GONE
-            proximoView.text = ""
+            proximoView.visibility = View.GONE
         }
 
+        handler.removeCallbacks(esconderBanner)
+        handler.postDelayed(esconderBanner, BANNER_MS)
+    }
+
+    /** "1h12min" / "45min" — tempo restante do programa atual, pro card do player. */
+    private fun formatarDuracao(restanteMs: Long): String {
+        val minutosTotais = (restanteMs / 60_000L).coerceAtLeast(0)
+        val horas = minutosTotais / 60
+        val minutos = minutosTotais % 60
+        return if (horas > 0) "${horas}h${minutos.toString().padStart(2, '0')}min" else "${minutos}min"
+    }
+
+    private fun atualizarFavorito(canal: Channel) {
+        val icone = findViewById<android.widget.ImageView>(R.id.bannerFavorito)
+        icone.setImageResource(
+            if (FavoritesStore.isFavorito(this, canal)) R.drawable.ic_favorito_on else R.drawable.ic_favorito_off
+        )
+        icone.setOnClickListener { alternarFavoritoCanalAtual() }
+    }
+
+    private fun alternarFavoritoCanalAtual() {
+        val canal = adapter.channels.getOrNull(atual) ?: return
+        FavoritesStore.alternar(this, canal)
+        atualizarFavorito(canal)
+        adapter.refresh() // repinta o coraçãozinho na lista lateral, se estiver montada.
+        // Mantém o card visível mais um pouco pra dar feedback visual da troca.
         handler.removeCallbacks(esconderBanner)
         handler.postDelayed(esconderBanner, BANNER_MS)
     }
@@ -374,6 +429,22 @@ class PlayerActivity : AppCompatActivity() {
                 if (listaPainel.visibility == View.VISIBLE) { fecharListaCanais(); true } else false
             }
             else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
+    /**
+     * OK/centro segurado: favorita/desfavorita o canal atual — sem precisar
+     * de controle com touchpad. O clique único (onKeyDown, acima) já agenda
+     * a exibição do card de informações; se o usuário mantiver pressionado
+     * além do limiar de long-press do sistema, o card já estará visível (ou
+     * prestes a aparecer) e este favorita em cima dele.
+     */
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (listaPainel.visibility != View.VISIBLE) { alternarFavoritoCanalAtual(); true } else false
+            }
+            else -> super.onKeyLongPress(keyCode, event)
         }
     }
 

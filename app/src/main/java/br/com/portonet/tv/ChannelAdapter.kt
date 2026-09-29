@@ -28,6 +28,7 @@ class ChannelAdapter(
         val logo: ImageView = view.findViewById(R.id.logo)
         val nome: TextView = view.findViewById(R.id.nome)
         val programa: TextView = view.findViewById(R.id.programa)
+        val favorito: ImageView = view.findViewById(R.id.favorito)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -45,6 +46,9 @@ class ChannelAdapter(
 
         val agora = Epg.nowNext(ContentRepository.epg, canal.tvgId, System.currentTimeMillis())?.first
         holder.programa.text = agora?.title ?: ""
+
+        holder.favorito.visibility =
+            if (FavoritesStore.isFavorito(holder.itemView.context, canal)) View.VISIBLE else View.GONE
 
         holder.itemView.setOnClickListener { onPick(position) }
     }

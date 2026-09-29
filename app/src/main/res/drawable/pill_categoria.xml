@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pill arredondado pra categoria do canal (ex.: "TV Aberta") no card de
+     informações do player, igual à referência visual pedida pelo usuário. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#33FFFFFF" />
+    <corners android:radius="20dp" />
+</shape>
