@@ -127,6 +127,7 @@ class PlayerActivity : AppCompatActivity() {
 
         Provisioning.cache(this)?.let { intervaloSincMs = it.intervaloSincSegundos * 1000L }
         handler.postDelayed(tickSincroniza, PRIMEIRA_SINC_MS)
+        EventosSse.observar(lifecycleScope) { sincronizarPeriodicamente() }
 
         configurarToqueDeTeste()
     }

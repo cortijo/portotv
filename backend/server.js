@@ -53,6 +53,50 @@ function baseUrl(req) {
 }
 
 // ---------------------------------------------------------------------
+// Eventos em tempo real (SSE) — avisa os apps já rodando assim que algo
+// muda no painel (canal novo/editado, EPG associado, aparelho autorizado/
+// revogado/bloqueado), em vez de esperar a próxima sincronização
+// periódica. Unidirecional (servidor -> app), sem token: é só um aviso
+// pra "vá checar de novo", o /sincronizar continua sendo a fonte da
+// verdade e filtra por device_id normalmente.
+// ---------------------------------------------------------------------
+const clientesEventos = new Set();
+
+function avisarClientes(motivo) {
+  for (const res of clientesEventos) {
+    try {
+      res.write(`data: ${motivo}\n\n`);
+    } catch {
+      clientesEventos.delete(res);
+    }
+  }
+}
+
+app.get('/eventos', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.write(': conectado\n\n');
+  clientesEventos.add(res);
+
+  const ping = setInterval(() => {
+    try {
+      res.write(': ping\n\n');
+    } catch {
+      clearInterval(ping);
+      clientesEventos.delete(res);
+    }
+  }, 20_000);
+
+  req.on('close', () => {
+    clearInterval(ping);
+    clientesEventos.delete(res);
+  });
+});
+
+// ---------------------------------------------------------------------
 // Endpoint que o app Portonet TV chama no boot e periodicamente.
 // Contrato completo em claude/analise-saimotv-e-proposta-portonet.md do
 // projeto — seção 7. Aqui é a implementação real desse contrato.
@@ -68,25 +112,15 @@ app.get('/sincronizar', (req, res) => {
   const redeInformada = String(req.query.rede || '').trim().toLowerCase();
   const rede = REDES_VALIDAS.has(redeInformada) ? redeInformada : 'desconhecida';
 
-  // Sinal Wi-Fi só faz sentido quando a rede informada é wifi — em qualquer
-  // outro caso ignora, mesmo que os parâmetros venham preenchidos.
-  const sinalDbm = rede === 'wifi' ? Number(req.query.sinal_dbm) : null;
-  const sinalNivel = rede === 'wifi' ? Number(req.query.sinal_nivel) : null;
-  const sinalDbmValido = Number.isFinite(sinalDbm) ? sinalDbm : null;
-  const sinalNivelValido = Number.isFinite(sinalNivel) ? Math.min(Math.max(sinalNivel, 0), 4) : null;
-
-  const cpuPctBruto = Number(req.query.cpu_pct);
-  const cpuPctValido = Number.isFinite(cpuPctBruto) ? Math.min(Math.max(Math.round(cpuPctBruto), 0), 100) : null;
-
   const existente = db.prepare('SELECT * FROM devices WHERE device_id = ?').get(deviceId);
   if (existente) {
     db.prepare(
-      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ?, sinal_dbm = ?, sinal_nivel = ?, cpu_pct = ? WHERE device_id = ?'
-    ).run(agoraISO(), rede, sinalDbmValido, sinalNivelValido, cpuPctValido, deviceId);
+      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ? WHERE device_id = ?'
+    ).run(agoraISO(), rede, deviceId);
   } else {
     db.prepare(
-      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede, sinal_dbm, sinal_nivel, cpu_pct) VALUES (?, 0, ?, ?, 1, ?, ?, ?, ?)'
-    ).run(deviceId, agoraISO(), agoraISO(), rede, sinalDbmValido, sinalNivelValido, cpuPctValido);
+      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede) VALUES (?, 0, ?, ?, 1, ?)'
+    ).run(deviceId, agoraISO(), agoraISO(), rede);
   }
 
   function finalizar(status, extra) {
@@ -173,12 +207,14 @@ admin.get('/devices', (_req, res) => {
 admin.post('/devices/:id/autorizar', (req, res) => {
   const info = db.prepare('UPDATE devices SET autorizado = 1, mensagem_bloqueio = NULL WHERE device_id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
+  avisarClientes('dispositivos');
   res.json({ ok: true });
 });
 
 admin.post('/devices/:id/revogar', (req, res) => {
   const info = db.prepare('UPDATE devices SET autorizado = 0, mensagem_bloqueio = NULL WHERE device_id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
+  avisarClientes('dispositivos');
   res.json({ ok: true });
 });
 
@@ -191,6 +227,7 @@ admin.post('/devices/:id/bloquear', (req, res) => {
   const mensagem = String(req.body?.mensagem || '').trim().slice(0, 300) || MENSAGEM_BLOQUEIO_PADRAO;
   const info = db.prepare('UPDATE devices SET autorizado = 0, mensagem_bloqueio = ? WHERE device_id = ?').run(mensagem, req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
+  avisarClientes('dispositivos');
   res.json({ ok: true, mensagem });
 });
 
@@ -253,6 +290,7 @@ admin.post('/canais', (req, res) => {
   ).run(String(nome).trim(), numero ? Number(numero) : null, logo || null, grupo || null, agoraISO());
   db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, 0)').run(info.lastInsertRowid, String(url).trim());
 
+  avisarClientes('catalogo');
   res.json(canalComFontes(info.lastInsertRowid));
 });
 
@@ -271,11 +309,13 @@ admin.put('/canais/:id', (req, res) => {
     ativo === false ? 0 : 1,
     req.params.id
   );
+  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.id));
 });
 
 admin.delete('/canais/:id', (req, res) => {
   db.prepare('DELETE FROM canais WHERE id = ?').run(req.params.id);
+  avisarClientes('catalogo');
   res.json({ ok: true });
 });
 
@@ -287,11 +327,13 @@ admin.post('/canais/:id/fontes', (req, res) => {
 
   const maxOrdem = db.prepare('SELECT COALESCE(MAX(ordem), -1) AS m FROM fontes WHERE canal_id = ?').get(req.params.id);
   db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, ?)').run(req.params.id, String(url).trim(), maxOrdem.m + 1);
+  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.id));
 });
 
 admin.delete('/canais/:canalId/fontes/:fonteId', (req, res) => {
   db.prepare('DELETE FROM fontes WHERE id = ? AND canal_id = ?').run(req.params.fonteId, req.params.canalId);
+  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.canalId));
 });
 
@@ -305,6 +347,7 @@ admin.post('/canais/:id/associar-epg', (req, res) => {
     epg_canal_id || null,
     req.params.id
   );
+  avisarClientes('catalogo');
   res.json(canalComFontes(req.params.id));
 });
 
@@ -353,6 +396,7 @@ admin.post('/canais/importar-selecionados', (req, res) => {
     importados++;
   }
 
+  if (importados > 0) avisarClientes('catalogo');
   res.json({ ok: true, importados });
 });
 

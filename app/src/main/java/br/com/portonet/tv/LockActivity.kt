@@ -34,6 +34,7 @@ class LockActivity : AppCompatActivity() {
 
         findViewById<android.widget.TextView>(R.id.uuid).text = DeviceId.get(this)
         tentarSincronizar()
+        EventosSse.observar(lifecycleScope) { tentarSincronizar() }
     }
 
     /**

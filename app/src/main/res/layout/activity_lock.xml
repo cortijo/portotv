@@ -19,12 +19,12 @@
 
     <ProgressBar
         android:id="@+id/progresso"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_marginBottom="24dp"
         android:indeterminate="true"
-        android:indeterminateTint="@color/portonet_azul_marinho" />
+        android:indeterminateTint="@color/portonet_azul_marinho"
+        android:indeterminateTintMode="src_in" />
 
     <TextView
         android:id="@+id/titulo"
