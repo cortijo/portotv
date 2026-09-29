@@ -15,8 +15,10 @@ object PlaylistParser {
 
     private val ATTR = Regex("""([a-zA-Z0-9_-]+)="([^"]*)"""")
 
+    private val NUMERO_VALIDO = Regex("""^\d+(\.\d+)?$""")
+
     fun parse(m3u: String): List<Channel> {
-        data class Pendente(val tvgId: String?, val name: String, val logo: String?, val group: String?)
+        data class Pendente(val tvgId: String?, val name: String, val logo: String?, val group: String?, val numero: String?)
 
         val porChave = LinkedHashMap<String, Channel>()
         var pendente: Pendente? = null
@@ -28,11 +30,13 @@ object PlaylistParser {
             if (linha.startsWith("#EXTINF:")) {
                 val attrs = ATTR.findAll(linha).associate { it.groupValues[1].lowercase() to it.groupValues[2] }
                 val nome = linha.substringAfterLast(',').trim().ifBlank { attrs["tvg-name"] ?: "Canal" }
+                val numero = attrs["tvg-chno"]?.trim()?.takeIf { it.isNotBlank() && NUMERO_VALIDO.matches(it) }
                 pendente = Pendente(
                     tvgId = attrs["tvg-id"]?.trim()?.takeIf { it.isNotBlank() },
                     name = nome,
                     logo = attrs["tvg-logo"]?.trim()?.takeIf { it.isNotBlank() },
                     group = attrs["group-title"]?.trim()?.takeIf { it.isNotBlank() },
+                    numero = numero,
                 )
                 continue
             }
@@ -53,14 +57,20 @@ object PlaylistParser {
                     name = atual.name,
                     logo = atual.logo,
                     group = atual.group,
-                    number = porChave.size + 1,
+                    // Número temporário — vira o de fato logo abaixo, com o
+                    // fallback por ordem de chegada pra quem não tem tvg-chno.
+                    number = atual.numero ?: "",
                     sources = listOf(Source(linha)),
                 )
             }
         }
 
-        // Número fixo por ordem de chegada na lista, 1-based — estável entre
-        // sincronizações desde que a Portonet não reordene a playlist.
-        return porChave.values.mapIndexed { indice, canal -> canal.copy(number = indice + 1) }
+        // Usa o tvg-chno (número estilo TV digital, ex. "2.1") vindo da
+        // playlist quando presente; canal sem tvg-chno cai no número fixo por
+        // ordem de chegada na lista, 1-based — estável entre sincronizações
+        // desde que a Portonet não reordene a playlist.
+        return porChave.values.mapIndexed { indice, canal ->
+            if (canal.number.isBlank()) canal.copy(number = (indice + 1).toString()) else canal
+        }
     }
 }

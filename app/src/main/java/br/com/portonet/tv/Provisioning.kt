@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /**
@@ -58,12 +59,25 @@ object Provisioning {
             .build()
     }
 
-    suspend fun sincronizar(context: Context): Sincronizacao = withContext(Dispatchers.IO) {
+    /**
+     * [canalAtual]: canal sintonizado no momento, quando chamado a partir do
+     * PlayerActivity — só pro painel de suporte enxergar "o que o aparelho
+     * está vendo agora". Nulo na tela de bloqueio, onde ainda não há canal
+     * nenhum sintonizado.
+     */
+    suspend fun sincronizar(context: Context, canalAtual: Channel? = null): Sincronizacao = withContext(Dispatchers.IO) {
         val deviceId = DeviceId.get(context)
         val rede = tipoDeRede(context)
+        val canalParams = if (canalAtual != null) {
+            val numero = URLEncoder.encode(canalAtual.number, "UTF-8")
+            val nome = URLEncoder.encode(canalAtual.name, "UTF-8")
+            "&canal_numero=$numero&canal_nome=$nome"
+        } else {
+            ""
+        }
         val corpo = runCatching {
             val request = Request.Builder()
-                .url("$BASE_URL/sincronizar?device_id=$deviceId&rede=$rede")
+                .url("$BASE_URL/sincronizar?device_id=$deviceId&rede=$rede$canalParams")
                 .header("User-Agent", "PortonetTV/1.0")
                 .build()
             client.newCall(request).execute().use { resposta ->

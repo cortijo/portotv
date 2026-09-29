@@ -251,7 +251,7 @@ class PlayerActivity : AppCompatActivity() {
         banner.visibility = View.VISIBLE
         findViewById<android.widget.ImageView>(R.id.bannerLogo).load(canal.logo)
         findViewById<TextView>(R.id.bannerNumeroNome).text =
-            "${canal.number.toString().padStart(2, '0')} · ${canal.name}"
+            "${formatarNumeroCanal(canal.number)} · ${canal.name}"
 
         val par = Epg.nowNext(ContentRepository.epg, canal.tvgId, System.currentTimeMillis())
         val agoraView = findViewById<TextView>(R.id.bannerAgora)
@@ -298,11 +298,13 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun confirmarNumero() {
-        val numero = numpadTexto.toIntOrNull()
+        val digitado = numpadTexto
         numpadTexto = ""
         numpad.visibility = View.GONE
-        if (numero == null) return
-        val indice = adapter.channels.indexOfFirst { it.number == numero }
+        if (digitado.isBlank()) return
+        // O controle remoto só tem dígitos (sem ponto) — "21" precisa achar o
+        // canal "2.1" comparando sem o ponto, e "5" continua achando "5" normal.
+        val indice = adapter.channels.indexOfFirst { it.number.replace(".", "") == digitado }
         if (indice >= 0) sintonizar(indice, fecharLista = true)
     }
 
@@ -310,7 +312,8 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun sincronizarPeriodicamente() {
         lifecycleScope.launch {
-            when (val resultado = Provisioning.sincronizar(this@PlayerActivity)) {
+            val canalAtual = adapter.channels.getOrNull(atual)
+            when (val resultado = Provisioning.sincronizar(this@PlayerActivity, canalAtual)) {
                 is Sincronizacao.Autorizado -> {
                     ContentRepository.atualizar(this@PlayerActivity, resultado)
                     intervaloSincMs = resultado.intervaloSincSegundos * 1000L

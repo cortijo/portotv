@@ -59,7 +59,13 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS canais (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
-    numero INTEGER,
+    -- "Número" no estilo TV digital: inteiro puro ("5") ou major.minor
+    -- ("2.1", "2.2") — texto porque SQLite não tem tipo decimal fixo e o
+    -- major.minor precisa ser preservado como string (2.10 != 2.1). Graças
+    -- à afinidade de tipo do SQLite, uma coluna já criada como INTEGER em
+    -- instalações antigas continua lendo/gravando esses valores numa boa;
+    -- não é preciso migrar linhas existentes.
+    numero TEXT,
     logo TEXT,
     grupo TEXT,
     ativo INTEGER NOT NULL DEFAULT 1,
@@ -95,6 +101,8 @@ garantirColuna('devices', 'mensagem_bloqueio', 'TEXT');
 garantirColuna('devices', 'sinal_dbm', 'INTEGER');
 garantirColuna('devices', 'sinal_nivel', 'INTEGER');
 garantirColuna('devices', 'cpu_pct', 'INTEGER');
+garantirColuna('devices', 'canal_atual_numero', 'TEXT');
+garantirColuna('devices', 'canal_atual_nome', 'TEXT');
 
 // Configuração padrão na primeira execução — o time da Portonet troca depois
 // pelo painel admin (URLs reais da playlist e do EPG).

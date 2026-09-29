@@ -56,6 +56,11 @@ function montar(canaisComFontes) {
       const atributos = [
         `tvg-id="${tvgId}"`,
         `tvg-name="${escaparAtributo(canal.nome)}"`,
+        // Número estilo TV digital ("2.1") passa direto como texto — o app
+        // (PlaylistParser.kt) lê tvg-chno como string, sem converter pra Int.
+        canal.numero !== null && canal.numero !== undefined && String(canal.numero).trim() !== ''
+          ? `tvg-chno="${escaparAtributo(canal.numero)}"`
+          : '',
         canal.logo ? `tvg-logo="${escaparAtributo(canal.logo)}"` : '',
         canal.grupo ? `group-title="${escaparAtributo(canal.grupo)}"` : '',
       ].filter(Boolean).join(' ');

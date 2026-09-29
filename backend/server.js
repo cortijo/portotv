@@ -48,6 +48,41 @@ function registrarAcesso(deviceId, status, req) {
 
 const REDES_VALIDAS = new Set(['wifi', 'ethernet', 'celular', 'desconhecida']);
 
+// Número de canal estilo TV digital: inteiro puro ("5") ou major.minor
+// ("2.1", "10.2"). Guardado como string; sem casas decimais fantasma.
+const NUMERO_CANAL_RE = /^\d+(\.\d+)?$/;
+
+/** Valida/normaliza o número de canal enviado pelo painel. Devolve `undefined` em caso de erro. */
+function normalizarNumeroCanal(valor) {
+  if (valor === undefined) return null; // campo ausente: mantém como estava (PUT) ou fica nulo (POST)
+  if (valor === null || String(valor).trim() === '') return null;
+  const texto = String(valor).trim();
+  if (!NUMERO_CANAL_RE.test(texto)) return undefined;
+  return texto;
+}
+
+/** Ordena canais pelo número no estilo TV digital (2, 2.1, 2.2, 3, 10 — não alfabético). */
+function ordenarPorNumero(canais) {
+  function chave(numero) {
+    if (numero === null || numero === undefined || String(numero).trim() === '') return null;
+    const [majorTexto, minorTexto] = String(numero).split('.');
+    const major = Number(majorTexto);
+    const minor = minorTexto !== undefined ? Number(minorTexto) : 0;
+    if (Number.isNaN(major) || Number.isNaN(minor)) return null;
+    return [major, minor];
+  }
+  return [...canais].sort((a, b) => {
+    const ca = chave(a.numero);
+    const cb = chave(b.numero);
+    if (ca === null && cb === null) return a.id - b.id;
+    if (ca === null) return 1; // nulos/inválidos por último
+    if (cb === null) return -1;
+    if (ca[0] !== cb[0]) return ca[0] - cb[0];
+    if (ca[1] !== cb[1]) return ca[1] - cb[1];
+    return a.id - b.id;
+  });
+}
+
 function baseUrl(req) {
   return process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
 }
@@ -112,15 +147,20 @@ app.get('/sincronizar', (req, res) => {
   const redeInformada = String(req.query.rede || '').trim().toLowerCase();
   const rede = REDES_VALIDAS.has(redeInformada) ? redeInformada : 'desconhecida';
 
+  // Canal atualmente sintonizado — só vem do PlayerActivity (a tela de
+  // bloqueio ainda não tem canal nenhum), então totalmente opcional.
+  const canalNumero = String(req.query.canal_numero || '').trim().slice(0, 20) || null;
+  const canalNome = String(req.query.canal_nome || '').trim().slice(0, 200) || null;
+
   const existente = db.prepare('SELECT * FROM devices WHERE device_id = ?').get(deviceId);
   if (existente) {
     db.prepare(
-      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ? WHERE device_id = ?'
-    ).run(agoraISO(), rede, deviceId);
+      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ?, canal_atual_numero = ?, canal_atual_nome = ? WHERE device_id = ?'
+    ).run(agoraISO(), rede, canalNumero, canalNome, deviceId);
   } else {
     db.prepare(
-      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede) VALUES (?, 0, ?, ?, 1, ?)'
-    ).run(deviceId, agoraISO(), agoraISO(), rede);
+      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede, canal_atual_numero, canal_atual_nome) VALUES (?, 0, ?, ?, 1, ?, ?, ?)'
+    ).run(deviceId, agoraISO(), agoraISO(), rede, canalNumero, canalNome);
   }
 
   function finalizar(status, extra) {
@@ -275,9 +315,10 @@ function canalComFontes(id) {
 }
 
 admin.get('/canais', (_req, res) => {
-  const canais = db.prepare('SELECT * FROM canais ORDER BY COALESCE(numero, id), id').all();
+  const canais = db.prepare('SELECT * FROM canais').all();
   const fontesStmt = db.prepare('SELECT * FROM fontes WHERE canal_id = ? ORDER BY ordem, id');
-  res.json(canais.map((c) => ({ ...c, ativo: c.ativo === 1, fontes: fontesStmt.all(c.id) })));
+  const ordenados = ordenarPorNumero(canais);
+  res.json(ordenados.map((c) => ({ ...c, ativo: c.ativo === 1, fontes: fontesStmt.all(c.id) })));
 });
 
 admin.post('/canais', (req, res) => {
@@ -285,9 +326,14 @@ admin.post('/canais', (req, res) => {
   if (!nome || !String(nome).trim()) return res.status(400).json({ erro: 'nome é obrigatório' });
   if (!url || !String(url).trim()) return res.status(400).json({ erro: 'url (fonte do canal) é obrigatória' });
 
+  const numeroValido = normalizarNumeroCanal(numero);
+  if (numeroValido === undefined) {
+    return res.status(400).json({ erro: 'número de canal inválido — use um inteiro ("5") ou major.minor ("2.1")' });
+  }
+
   const info = db.prepare(
     'INSERT INTO canais (nome, numero, logo, grupo, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)'
-  ).run(String(nome).trim(), numero ? Number(numero) : null, logo || null, grupo || null, agoraISO());
+  ).run(String(nome).trim(), numeroValido, logo || null, grupo || null, agoraISO());
   db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, 0)').run(info.lastInsertRowid, String(url).trim());
 
   avisarClientes('catalogo');
@@ -299,11 +345,16 @@ admin.put('/canais/:id', (req, res) => {
   if (!canal) return res.status(404).json({ erro: 'canal não encontrado' });
 
   const { nome, numero, logo, grupo, ativo } = req.body || {};
+  const numeroValido = normalizarNumeroCanal(numero);
+  if (numeroValido === undefined) {
+    return res.status(400).json({ erro: 'número de canal inválido — use um inteiro ("5") ou major.minor ("2.1")' });
+  }
+
   db.prepare(
     'UPDATE canais SET nome = COALESCE(?, nome), numero = ?, logo = ?, grupo = ?, ativo = ? WHERE id = ?'
   ).run(
     nome ? String(nome).trim() : null,
-    numero === undefined ? null : (numero === null ? null : Number(numero)),
+    numeroValido,
     logo === undefined ? null : logo,
     grupo === undefined ? null : grupo,
     ativo === false ? 0 : 1,

@@ -170,7 +170,7 @@
       <h3>Adicionar manualmente</h3>
       <div class="grid4">
         <div><label>Nome</label><input type="text" id="novoNome" placeholder="Globo" /></div>
-        <div><label>Número (opcional)</label><input type="number" id="novoNumero" placeholder="2" /></div>
+        <div><label>Número (opcional)</label><input type="text" id="novoNumero" placeholder="ex.: 2.1" /></div>
         <div><label>Grupo (opcional)</label><input type="text" id="novoGrupo" placeholder="Abertos" /></div>
         <div><label>Logo (URL, opcional)</label><input type="text" id="novoLogo" placeholder="https://.../logo.png" /></div>
       </div>
@@ -316,6 +316,7 @@
             <th>Status</th>
             <th>Rede</th>
             <th>Latência</th>
+            <th>Canal atual</th>
             <th>Última sincronização</th>
             <th>Ações</th>
           </tr>
@@ -503,15 +504,20 @@ function importarSelecionados() {
 function adicionarCanalManual() {
   const nome = document.getElementById('novoNome').value.trim();
   const url = document.getElementById('novoUrl').value.trim();
+  const numero = document.getElementById('novoNumero').value.trim();
   const msg = document.getElementById('novoCanalMsg');
   if (!nome || !url) { msg.textContent = 'Nome e URL são obrigatórios.'; return; }
+  if (numero && !/^\d+(\.\d+)?$/.test(numero)) {
+    msg.textContent = 'Número de canal inválido — use um inteiro ("5") ou major.minor ("2.1").';
+    return;
+  }
 
   api('/admin/api/canais', {
     method: 'POST',
     body: JSON.stringify({
       nome,
       url,
-      numero: document.getElementById('novoNumero').value || null,
+      numero: numero || null,
       grupo: document.getElementById('novoGrupo').value.trim() || null,
       logo: document.getElementById('novoLogo').value.trim() || null,
     }),
@@ -714,6 +720,7 @@ function carregarAparelhos() {
         <td><span class="badge ${st.classe}" title="${d.mensagem_bloqueio ? escaparHtml(d.mensagem_bloqueio) : ''}">${st.texto}</span></td>
         <td class="net">${NOMES_REDE[d.rede] || '—'}</td>
         <td class="net">${d.latencia_ms != null ? d.latencia_ms + ' ms' : '—'}</td>
+        <td>${d.canal_atual_nome ? `${escaparHtml(d.canal_atual_numero || '')} · ${escaparHtml(d.canal_atual_nome)}` : '—'}</td>
         <td>${formatarData(d.ultima_sincronizacao)}</td>
         <td class="acoes">
           ${d.autorizado

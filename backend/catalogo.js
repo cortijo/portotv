@@ -2,11 +2,33 @@
 
 const db = require('./db');
 
+/** Ordena canais pelo número no estilo TV digital (2, 2.1, 2.2, 3, 10 — não alfabético). */
+function ordenarPorNumero(canais) {
+  function chave(numero) {
+    if (numero === null || numero === undefined || String(numero).trim() === '') return null;
+    const [majorTexto, minorTexto] = String(numero).split('.');
+    const major = Number(majorTexto);
+    const minor = minorTexto !== undefined ? Number(minorTexto) : 0;
+    if (Number.isNaN(major) || Number.isNaN(minor)) return null;
+    return [major, minor];
+  }
+  return [...canais].sort((a, b) => {
+    const ca = chave(a.numero);
+    const cb = chave(b.numero);
+    if (ca === null && cb === null) return a.id - b.id;
+    if (ca === null) return 1;
+    if (cb === null) return -1;
+    if (ca[0] !== cb[0]) return ca[0] - cb[0];
+    if (ca[1] !== cb[1]) return ca[1] - cb[1];
+    return a.id - b.id;
+  });
+}
+
 /** Canais ativos com suas fontes — usado pra gerar a playlist exportada. */
 function canaisAtivosComFontes() {
-  const canais = db.prepare('SELECT * FROM canais WHERE ativo = 1 ORDER BY COALESCE(numero, id), id').all();
+  const canais = db.prepare('SELECT * FROM canais WHERE ativo = 1').all();
   const fontesStmt = db.prepare('SELECT * FROM fontes WHERE canal_id = ? ORDER BY ordem, id');
-  return canais
+  return ordenarPorNumero(canais)
     .map((canal) => ({ ...canal, fontes: fontesStmt.all(canal.id) }))
     .filter((canal) => canal.fontes.length > 0); // canal sem nenhuma fonte não deveria aparecer na playlist
 }

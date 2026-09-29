@@ -39,7 +39,7 @@ class ChannelAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val canal = channels[position]
-        holder.numero.text = canal.number.toString().padStart(2, '0')
+        holder.numero.text = formatarNumeroCanal(canal.number)
         holder.nome.text = canal.name
         if (canal.logo != null) holder.logo.load(canal.logo) else holder.logo.setImageDrawable(null)
 
