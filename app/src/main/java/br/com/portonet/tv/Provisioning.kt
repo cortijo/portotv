@@ -1,6 +1,8 @@
 package br.com.portonet.tv
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -24,7 +26,8 @@ sealed class Sincronizacao {
         val intervaloSincSegundos: Long,
     ) : Sincronizacao()
 
-    object NaoAutorizado : Sincronizacao()
+    /** [mensagem]: motivo do bloqueio, quando o suporte define um ao bloquear o aparelho no painel. */
+    data class NaoAutorizado(val mensagem: String? = null) : Sincronizacao()
     /** API fora do ar / resposta ilegível — quem chama decide se usa o cache. */
     object Indisponivel : Sincronizacao()
 }
@@ -53,9 +56,10 @@ object Provisioning {
 
     suspend fun sincronizar(context: Context): Sincronizacao = withContext(Dispatchers.IO) {
         val deviceId = DeviceId.get(context)
+        val rede = tipoDeRede(context)
         val corpo = runCatching {
             val request = Request.Builder()
-                .url("$BASE_URL/sincronizar?device_id=$deviceId")
+                .url("$BASE_URL/sincronizar?device_id=$deviceId&rede=$rede")
                 .header("User-Agent", "PortonetTV/1.0")
                 .build()
             client.newCall(request).execute().use { resposta ->
@@ -77,11 +81,23 @@ object Provisioning {
                     salvarCache(context, resultado)
                     resultado
                 }
-                "nao_autorizado" -> Sincronizacao.NaoAutorizado
+                "nao_autorizado" -> Sincronizacao.NaoAutorizado(json.optString("mensagem").ifBlank { null })
                 else -> Sincronizacao.Indisponivel
             }
         }.getOrElse { Sincronizacao.Indisponivel }
     }
+
+    /** Tipo de rede atual — só pra o painel de suporte enxergar como o aparelho está conectado. */
+    private fun tipoDeRede(context: Context): String = runCatching {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capacidades = cm.getNetworkCapabilities(cm.activeNetwork) ?: return "desconhecida"
+        when {
+            capacidades.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
+            capacidades.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+            capacidades.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "celular"
+            else -> "desconhecida"
+        }
+    }.getOrDefault("desconhecida")
 
     /** Última sincronização autorizada com sucesso, sem tocar na rede. */
     fun cache(context: Context): Sincronizacao.Autorizado? = runCatching {

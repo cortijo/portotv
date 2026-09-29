@@ -269,7 +269,7 @@ class PlayerActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val resultado = Provisioning.sincronizar(this@PlayerActivity)) {
                 is Sincronizacao.Autorizado -> ContentRepository.atualizar(this@PlayerActivity, resultado)
-                Sincronizacao.NaoAutorizado -> voltarParaBloqueio()
+                is Sincronizacao.NaoAutorizado -> voltarParaBloqueio()
                 Sincronizacao.Indisponivel -> Unit // segue com o que já tem em memória/cache.
             }
         }

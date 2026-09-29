@@ -12,6 +12,7 @@
     --cinza-claro: #7A7A7A;
     --verde: #00991F;
     --vermelho: #CC3366;
+    --amarelo: #B8860B;
   }
   * { box-sizing: border-box; }
   body {
@@ -30,7 +31,7 @@
   }
   header h1 { font-size: 18px; margin: 0; font-weight: 600; }
   header .sub { font-size: 12px; opacity: .8; margin-top: 2px; }
-  main { max-width: 980px; margin: 0 auto; padding: 24px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
   .card {
     background: #fff;
     border-radius: 10px;
@@ -39,12 +40,16 @@
     box-shadow: 0 1px 3px rgba(0,0,0,.08);
   }
   .card h2 { font-size: 15px; margin: 0 0 14px; color: var(--azul); }
+  .card h3 { font-size: 13px; margin: 18px 0 10px; color: var(--cinza); border-top: 1px solid #F0F2F8; padding-top: 16px; }
+  .card h3:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .muted { color: var(--cinza-claro); font-size: 12.5px; line-height: 1.5; }
   label { display: block; font-size: 12px; color: var(--cinza-claro); margin-bottom: 4px; margin-top: 10px; }
   input[type=text], input[type=number], input[type=password] {
     width: 100%; padding: 9px 10px; border: 1px solid #DADFE8; border-radius: 6px; font-size: 14px;
   }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
   .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 20px; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0 20px; }
   button {
     background: var(--azul-vivo); color: #fff; border: none; border-radius: 6px;
     padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -56,20 +61,26 @@
   th { text-align: left; color: var(--cinza-claro); font-weight: 600; font-size: 11px; text-transform: uppercase; padding: 8px 6px; border-bottom: 1px solid #EEF1F8; }
   td { padding: 10px 6px; border-bottom: 1px solid #F4F6FB; vertical-align: middle; }
   .uuid { font-family: monospace; font-size: 12px; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
   .badge.ok { background: #E5F7E8; color: var(--verde); }
   .badge.pendente { background: #FDEBF1; color: var(--vermelho); }
+  .badge.bloqueado { background: #3A2020; color: #FFB4B4; }
+  .badge.alerta { background: #FFF6E5; color: var(--amarelo); }
+  .acoes { white-space: nowrap; }
   .acoes button { margin-right: 6px; padding: 6px 10px; font-size: 12px; }
   #login { max-width: 360px; margin: 80px auto; text-align: center; }
   #login .card { text-align: left; }
   .aviso { background: #FFF6E5; border: 1px solid #F3D98B; color: #7A5B00; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
-  .rodape-form { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+  .info { background: #EEF1F8; border: 1px solid #DCE3F5; color: var(--azul); padding: 10px 14px; border-radius: 6px; font-size: 12.5px; margin-bottom: 16px; line-height: 1.5; }
+  .info code { background: rgba(1,35,124,.08); padding: 1px 5px; border-radius: 4px; }
+  .rodape-form { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .ok-msg { color: var(--verde); font-size: 12px; }
+  .erro-msg { color: var(--vermelho); font-size: 12px; }
   .vazio { color: var(--cinza-claro); font-size: 13px; padding: 20px 0; text-align: center; }
   .upload-linha { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
   .btn-upload {
     background: #EEF1F8; color: var(--azul); border-radius: 6px; padding: 6px 10px;
-    font-size: 12px; font-weight: 600; cursor: pointer; display: inline-block;
+    font-size: 12px; font-weight: 600; cursor: pointer; display: inline-block; white-space: nowrap;
   }
   .upload-msg { font-size: 12px; color: var(--cinza-claro); }
   .upload-msg.ok { color: var(--verde); }
@@ -80,8 +91,16 @@
   .status-txt { font-size: 12px; }
   .status-txt.autorizado { color: var(--verde); }
   .status-txt.nao_autorizado { color: var(--vermelho); }
-  .status-txt.sem_conteudo { color: #B8860B; }
-  .link-logs { font-size: 11px; color: var(--azul-vivo); cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline; }
+  .status-txt.sem_conteudo { color: var(--amarelo); }
+  select {
+    padding: 7px 8px; border: 1px solid #DADFE8; border-radius: 6px; font-size: 12.5px; background: #fff;
+  }
+  .preview-tabela { max-height: 320px; overflow-y: auto; margin-top: 12px; border: 1px solid #EEF1F8; border-radius: 8px; }
+  .preview-tabela table { font-size: 12.5px; }
+  .fontes-lista { font-size: 11.5px; color: var(--cinza-claro); }
+  .fontes-lista div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .toggle-ativo { cursor: pointer; }
+  .net { font-size: 12px; }
 </style>
 </head>
 <body>
@@ -101,33 +120,133 @@
   <header>
     <div>
       <h1>Portonet TV — Painel de provisionamento</h1>
-      <div class="sub">Autorize aparelhos e configure a playlist / EPG que o app sincroniza</div>
+      <div class="sub">Canais, EPG e aparelhos autorizados a sincronizar</div>
     </div>
     <button class="secundario" onclick="sair()">Sair</button>
   </header>
 
   <main>
+
     <div class="card">
-      <h2>Playlist e EPG</h2>
+      <h2>Canais</h2>
+      <div class="info">
+        A playlist que o app baixa é gerada a partir dos canais cadastrados aqui —
+        não mais de uma URL externa direto (uma lista de terceiros pode mudar ou cair
+        a qualquer momento). Dá pra importar canais de uma lista M3U existente
+        (escolhendo o que trazer) ou cadastrar um por um.
+      </div>
+
+      <h3>Importar de uma lista M3U</h3>
+      <div class="grid">
+        <div style="grid-column: 1 / -1">
+          <label>URL da lista M3U/M3U8</label>
+          <input type="text" id="importUrl" placeholder="https://.../lista.m3u8" />
+          <div class="upload-linha">
+            <label class="btn-upload" for="importArquivo">Enviar arquivo (.m3u/.m3u8)</label>
+            <input type="file" id="importArquivo" accept=".m3u,.m3u8" style="display:none" onchange="enviarArquivoImport(this)" />
+            <span class="upload-msg" id="importUploadMsg"></span>
+          </div>
+        </div>
+      </div>
+      <div class="rodape-form">
+        <button onclick="buscarParaImportar()">Buscar lista</button>
+        <span id="importMsg" class="muted"></span>
+      </div>
+      <div id="previewImport" style="display:none">
+        <div class="rodape-form">
+          <button class="secundario" onclick="selecionarTodosPreview(true)">Marcar todos</button>
+          <button class="secundario" onclick="selecionarTodosPreview(false)">Desmarcar todos</button>
+          <button onclick="importarSelecionados()">Importar selecionados</button>
+          <span id="importarSelecionadosMsg" class="muted"></span>
+        </div>
+        <div class="preview-tabela">
+          <table>
+            <thead><tr><th style="width:30px"></th><th>Nome</th><th>Grupo</th><th>URL</th></tr></thead>
+            <tbody id="listaPreviewImport"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3>Adicionar manualmente</h3>
+      <div class="grid4">
+        <div><label>Nome</label><input type="text" id="novoNome" placeholder="Globo" /></div>
+        <div><label>Número (opcional)</label><input type="number" id="novoNumero" placeholder="2" /></div>
+        <div><label>Grupo (opcional)</label><input type="text" id="novoGrupo" placeholder="Abertos" /></div>
+        <div><label>Logo (URL, opcional)</label><input type="text" id="novoLogo" placeholder="https://.../logo.png" /></div>
+      </div>
+      <label>URL do stream</label>
+      <input type="text" id="novoUrl" placeholder="http://.../canal.m3u8" />
+      <div class="rodape-form">
+        <button onclick="adicionarCanalManual()">Adicionar canal</button>
+        <span id="novoCanalMsg" class="muted"></span>
+      </div>
+
+      <h3>Canais cadastrados (<span id="totalCanais">0</span>)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Nº</th>
+            <th>Nome</th>
+            <th>Grupo</th>
+            <th>Fontes</th>
+            <th>EPG associado</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="listaCanais"></tbody>
+      </table>
+      <div class="vazio" id="vazioCanaisMsg" style="display:none">Nenhum canal cadastrado ainda.</div>
+    </div>
+
+    <div class="card">
+      <h2>Entradas de EPG</h2>
+      <div class="muted" style="margin-bottom:14px">
+        Cadastre aqui as fontes de guia de programação (XMLTV). Depois, em cada canal
+        acima, associe qual "canal" *dentro* dessa fonte fornece a programação dele.
+      </div>
       <div class="grid">
         <div>
-          <label>URL da playlist M3U</label>
-          <input type="text" id="playlistUrl" placeholder="https://.../lista.m3u8" />
-          <div class="upload-linha">
-            <label class="btn-upload" for="playlistArquivo">Enviar arquivo (.m3u/.m3u8)</label>
-            <input type="file" id="playlistArquivo" accept=".m3u,.m3u8" style="display:none" onchange="enviarArquivo(this, 'playlistUrl')" />
-            <span class="upload-msg" id="playlistUploadMsg"></span>
-          </div>
+          <label>Nome</label>
+          <input type="text" id="epgNome" placeholder="Guia Portonet" />
         </div>
         <div>
-          <label>URL do EPG (XMLTV)</label>
-          <input type="text" id="epgUrl" placeholder="https://.../guia.xml" />
+          <label>URL do XMLTV</label>
+          <input type="text" id="epgInputUrl" placeholder="https://.../guia.xml" />
           <div class="upload-linha">
-            <label class="btn-upload" for="epgArquivo">Enviar arquivo (.xml)</label>
-            <input type="file" id="epgArquivo" accept=".xml" style="display:none" onchange="enviarArquivo(this, 'epgUrl')" />
-            <span class="upload-msg" id="epgUploadMsg"></span>
+            <label class="btn-upload" for="epgInputArquivo">Enviar arquivo (.xml)</label>
+            <input type="file" id="epgInputArquivo" accept=".xml" style="display:none" onchange="enviarArquivoEpgInput(this)" />
+            <span class="upload-msg" id="epgInputUploadMsg"></span>
           </div>
         </div>
+      </div>
+      <div class="rodape-form">
+        <button onclick="cadastrarEpgInput()">Cadastrar</button>
+        <span id="epgInputMsg" class="muted"></span>
+      </div>
+
+      <h3>Fontes cadastradas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>URL</th>
+            <th>Status</th>
+            <th>Canais encontrados</th>
+            <th>Última atualização</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="listaEpgInputs"></tbody>
+      </table>
+      <div class="vazio" id="vazioEpgInputsMsg" style="display:none">Nenhuma fonte de EPG cadastrada ainda.</div>
+    </div>
+
+    <div class="card">
+      <h2>Sincronização</h2>
+      <div class="info">
+        Playlist e EPG exportados automaticamente a partir do catálogo acima:
+        <code id="linkPlaylist">/playlist.m3u8</code> e <code id="linkEpg">/epg.xml</code>.
       </div>
       <div class="grid3">
         <div>
@@ -151,16 +270,14 @@
 
     <div class="card">
       <h2>Aparelhos (<span id="totalAparelhos">0</span>)</h2>
-      <div id="avisoSemConteudo" class="aviso" style="display:none">
-        Nenhuma URL de playlist/EPG configurada acima — aparelhos ficam bloqueados mesmo autorizados até isso ser preenchido.
-      </div>
       <table>
         <thead>
           <tr>
             <th>UUID</th>
             <th>Apelido</th>
             <th>Status</th>
-            <th>1ª sincronização</th>
+            <th>Rede</th>
+            <th>Latência</th>
             <th>Última sincronização</th>
             <th>Ações</th>
           </tr>
@@ -195,6 +312,8 @@
 
 <script>
 let token = localStorage.getItem('portonet_admin_token') || '';
+let epgInputsCache = [];
+let itensPreviewImport = [];
 
 function api(caminho, opts = {}) {
   return fetch(caminho, {
@@ -223,21 +342,30 @@ function sair() {
 function mostrarPainel() {
   document.getElementById('login').style.display = 'none';
   document.getElementById('painel').style.display = 'block';
+  document.getElementById('linkPlaylist').textContent = `${location.origin}/playlist.m3u8`;
+  document.getElementById('linkEpg').textContent = `${location.origin}/epg.xml`;
+
   carregarConfig();
+  carregarCanais();
+  carregarEpgInputs();
   carregarAparelhos();
   carregarLogs();
   setInterval(carregarAparelhos, 15000);
   setInterval(carregarLogs, 15000);
 }
 
+function formatarData(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('pt-BR');
+}
+
+// --- Sincronização (TTLs) ------------------------------------------------
+
 function carregarConfig() {
   api('/admin/api/config').then((cfg) => {
-    document.getElementById('playlistUrl').value = cfg.playlist_url;
-    document.getElementById('epgUrl').value = cfg.epg_url;
     document.getElementById('playlistTtl').value = cfg.playlist_ttl_seconds;
     document.getElementById('epgTtl').value = cfg.epg_ttl_seconds;
     document.getElementById('syncInterval').value = cfg.sync_interval_seconds;
-    document.getElementById('avisoSemConteudo').style.display = (!cfg.playlist_url || !cfg.epg_url) ? 'block' : 'none';
   });
 }
 
@@ -245,8 +373,6 @@ function salvarConfig() {
   api('/admin/api/config', {
     method: 'POST',
     body: JSON.stringify({
-      playlist_url: document.getElementById('playlistUrl').value.trim(),
-      epg_url: document.getElementById('epgUrl').value.trim(),
       playlist_ttl_seconds: Number(document.getElementById('playlistTtl').value),
       epg_ttl_seconds: Number(document.getElementById('epgTtl').value),
       sync_interval_seconds: Number(document.getElementById('syncInterval').value),
@@ -255,76 +381,238 @@ function salvarConfig() {
     const msg = document.getElementById('configMsg');
     msg.textContent = 'Salvo.';
     setTimeout(() => (msg.textContent = ''), 2000);
-    carregarConfig();
   });
 }
 
-function formatarData(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleString('pt-BR');
+// --- Importar M3U ---------------------------------------------------------
+
+function enviarArquivoImport(inputEl) {
+  enviarArquivoGenerico(inputEl, 'importUploadMsg', (url) => { document.getElementById('importUrl').value = url; });
 }
 
-function carregarAparelhos() {
-  api('/admin/api/devices').then((lista) => {
-    document.getElementById('totalAparelhos').textContent = lista.length;
-    const corpo = document.getElementById('listaAparelhos');
-    document.getElementById('vazioMsg').style.display = lista.length === 0 ? 'block' : 'none';
-    corpo.innerHTML = lista.map((d) => `
+function buscarParaImportar() {
+  const url = document.getElementById('importUrl').value.trim();
+  const msg = document.getElementById('importMsg');
+  if (!url) { msg.textContent = 'Cole ou envie uma lista primeiro.'; return; }
+  msg.textContent = 'Buscando...';
+  api('/admin/api/canais/importar-m3u', { method: 'POST', body: JSON.stringify({ url }) })
+    .then((resultado) => {
+      itensPreviewImport = resultado.itens.map((item) => ({ ...item, selecionado: true }));
+      msg.textContent = resultado.aviso || `${resultado.total_encontrado} canal(is) encontrado(s).`;
+      renderizarPreviewImport();
+      document.getElementById('previewImport').style.display = 'block';
+    })
+    .catch((e) => { msg.textContent = e.message; });
+}
+
+function renderizarPreviewImport() {
+  document.getElementById('listaPreviewImport').innerHTML = itensPreviewImport.map((item, i) => `
+    <tr>
+      <td><input type="checkbox" ${item.selecionado ? 'checked' : ''} onchange="itensPreviewImport[${i}].selecionado = this.checked" /></td>
+      <td>${escaparHtml(item.tvgName || item.nome)}</td>
+      <td>${escaparHtml(item.grupo || '—')}</td>
+      <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escaparHtml(item.url)}</td>
+    </tr>
+  `).join('');
+}
+
+function selecionarTodosPreview(valor) {
+  itensPreviewImport.forEach((item) => (item.selecionado = valor));
+  renderizarPreviewImport();
+}
+
+function importarSelecionados() {
+  const itens = itensPreviewImport.filter((i) => i.selecionado);
+  const msg = document.getElementById('importarSelecionadosMsg');
+  if (itens.length === 0) { msg.textContent = 'Selecione ao menos um canal.'; return; }
+  msg.textContent = 'Importando...';
+  api('/admin/api/canais/importar-selecionados', { method: 'POST', body: JSON.stringify({ itens }) })
+    .then((r) => {
+      msg.textContent = `${r.importados} canal(is) importado(s).`;
+      itensPreviewImport = [];
+      document.getElementById('previewImport').style.display = 'none';
+      carregarCanais();
+    })
+    .catch((e) => { msg.textContent = e.message; });
+}
+
+// --- Canais ----------------------------------------------------------------
+
+function adicionarCanalManual() {
+  const nome = document.getElementById('novoNome').value.trim();
+  const url = document.getElementById('novoUrl').value.trim();
+  const msg = document.getElementById('novoCanalMsg');
+  if (!nome || !url) { msg.textContent = 'Nome e URL são obrigatórios.'; return; }
+
+  api('/admin/api/canais', {
+    method: 'POST',
+    body: JSON.stringify({
+      nome,
+      url,
+      numero: document.getElementById('novoNumero').value || null,
+      grupo: document.getElementById('novoGrupo').value.trim() || null,
+      logo: document.getElementById('novoLogo').value.trim() || null,
+    }),
+  }).then(() => {
+    msg.textContent = 'Canal adicionado.';
+    ['novoNome', 'novoNumero', 'novoGrupo', 'novoLogo', 'novoUrl'].forEach((id) => (document.getElementById(id).value = ''));
+    setTimeout(() => (msg.textContent = ''), 2000);
+    carregarCanais();
+  }).catch((e) => { msg.textContent = e.message; });
+}
+
+function carregarCanais() {
+  api('/admin/api/canais').then((lista) => {
+    document.getElementById('totalCanais').textContent = lista.length;
+    document.getElementById('vazioCanaisMsg').style.display = lista.length === 0 ? 'block' : 'none';
+    document.getElementById('listaCanais').innerHTML = lista.map((c) => linhaCanal(c)).join('');
+  });
+}
+
+function linhaCanal(c) {
+  const epgTexto = c.epg_input_id
+    ? `${nomeEpgInput(c.epg_input_id)} · ${escaparHtml(c.epg_canal_id)}`
+    : '<span class="muted">não associado</span>';
+
+  const opcoesInputs = epgInputsCache.map((i) =>
+    `<option value="${i.id}" ${i.id === c.epg_input_id ? 'selected' : ''}>${escaparHtml(i.nome)}</option>`
+  ).join('');
+
+  return `
+    <tr>
+      <td>${c.numero ?? '—'}</td>
+      <td>${escaparHtml(c.nome)}</td>
+      <td>${escaparHtml(c.grupo || '—')}</td>
+      <td class="fontes-lista">${c.fontes.length} fonte(s)</td>
+      <td>${epgTexto}</td>
+      <td><span class="badge ${c.ativo ? 'ok' : 'pendente'} toggle-ativo" onclick="alternarAtivo(${c.id}, ${!c.ativo})">${c.ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td class="acoes">
+        <select id="epgInputSel-${c.id}" onchange="carregarCanaisDoInputParaSelect(${c.id})">
+          <option value="">— fonte de EPG —</option>
+          ${opcoesInputs}
+        </select>
+        <select id="epgCanalSel-${c.id}"><option value="">—</option></select>
+        <button class="secundario" onclick="associarEpg(${c.id})">Associar</button>
+        <button class="perigo" onclick="removerCanal(${c.id})">Remover</button>
+      </td>
+    </tr>
+  `;
+}
+
+function nomeEpgInput(id) {
+  const input = epgInputsCache.find((i) => i.id === id);
+  return input ? input.nome : `#${id}`;
+}
+
+function alternarAtivo(id, novoValor) {
+  api(`/admin/api/canais/${id}`, { method: 'PUT', body: JSON.stringify({ ativo: novoValor }) }).then(carregarCanais);
+}
+
+function removerCanal(id) {
+  if (!confirm('Remover este canal do catálogo?')) return;
+  api(`/admin/api/canais/${id}`, { method: 'DELETE' }).then(carregarCanais);
+}
+
+async function carregarCanaisDoInputParaSelect(canalId) {
+  const inputId = document.getElementById(`epgInputSel-${canalId}`).value;
+  const selCanal = document.getElementById(`epgCanalSel-${canalId}`);
+  selCanal.innerHTML = '<option value="">carregando...</option>';
+  if (!inputId) { selCanal.innerHTML = '<option value="">—</option>'; return; }
+  try {
+    const r = await api(`/admin/api/epg-inputs/${inputId}/canais`);
+    selCanal.innerHTML = r.canais.map((c) => `<option value="${escaparHtml(c.id)}">${escaparHtml(c.nome)}</option>`).join('');
+  } catch (e) {
+    selCanal.innerHTML = `<option value="">erro: ${escaparHtml(e.message)}</option>`;
+  }
+}
+
+function associarEpg(canalId) {
+  const epgInputId = document.getElementById(`epgInputSel-${canalId}`).value || null;
+  const epgCanalId = document.getElementById(`epgCanalSel-${canalId}`).value || null;
+  api(`/admin/api/canais/${canalId}/associar-epg`, {
+    method: 'POST',
+    body: JSON.stringify({ epg_input_id: epgInputId, epg_canal_id: epgCanalId }),
+  }).then(carregarCanais);
+}
+
+// --- Entradas de EPG --------------------------------------------------------
+
+function enviarArquivoEpgInput(inputEl) {
+  enviarArquivoGenerico(inputEl, 'epgInputUploadMsg', (url) => { document.getElementById('epgInputUrl').value = url; });
+}
+
+function cadastrarEpgInput() {
+  const nome = document.getElementById('epgNome').value.trim();
+  const url = document.getElementById('epgInputUrl').value.trim();
+  const msg = document.getElementById('epgInputMsg');
+  if (!nome || !url) { msg.textContent = 'Nome e URL são obrigatórios.'; return; }
+
+  api('/admin/api/epg-inputs', { method: 'POST', body: JSON.stringify({ nome, url }) })
+    .then(() => {
+      msg.textContent = 'Cadastrado — clique em "Atualizar" na lista abaixo pra buscar os canais dessa fonte.';
+      document.getElementById('epgNome').value = '';
+      document.getElementById('epgInputUrl').value = '';
+      carregarEpgInputs();
+    })
+    .catch((e) => { msg.textContent = e.message; });
+}
+
+const NOMES_STATUS_EPG = { ok: 'ok', erro: 'erro', nunca_sincronizado: 'nunca atualizado' };
+
+function carregarEpgInputs() {
+  api('/admin/api/epg-inputs').then((lista) => {
+    epgInputsCache = lista;
+    document.getElementById('vazioEpgInputsMsg').style.display = lista.length === 0 ? 'block' : 'none';
+    document.getElementById('listaEpgInputs').innerHTML = lista.map((i) => `
       <tr>
-        <td class="uuid">${d.device_id}</td>
-        <td>
-          <input type="text" value="${d.apelido || ''}" placeholder="ex.: Loja Centro"
-            style="width:140px;padding:5px 8px;font-size:12px"
-            onchange="salvarApelido('${d.device_id}', this.value)" />
-        </td>
-        <td><span class="badge ${d.autorizado ? 'ok' : 'pendente'}">${d.autorizado ? 'Autorizado' : 'Aguardando'}</span></td>
-        <td>${formatarData(d.primeira_vez)}</td>
-        <td>${formatarData(d.ultima_sincronizacao)}</td>
+        <td>${escaparHtml(i.nome)}</td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escaparHtml(i.url)}</td>
+        <td><span class="badge ${i.status === 'ok' ? 'ok' : i.status === 'erro' ? 'pendente' : 'alerta'}">${NOMES_STATUS_EPG[i.status] || i.status}</span>${i.ultimo_erro ? ` <span class="muted" title="${escaparHtml(i.ultimo_erro)}">ⓘ</span>` : ''}</td>
+        <td>${i.total_canais_encontrados}</td>
+        <td>${formatarData(i.ultima_atualizacao)}</td>
         <td class="acoes">
-          ${d.autorizado
-            ? `<button class="perigo" onclick="revogar('${d.device_id}')">Revogar</button>`
-            : `<button onclick="autorizar('${d.device_id}')">Autorizar</button>`}
-          <button class="secundario" onclick="remover('${d.device_id}')">Remover</button>
-          <button class="secundario" onclick="verLogsDoAparelho('${d.device_id}')">Logs</button>
+          <button class="secundario" onclick="atualizarEpgInput(${i.id})">Atualizar</button>
+          <button class="perigo" onclick="removerEpgInput(${i.id})">Remover</button>
         </td>
       </tr>
     `).join('');
+    // Re-renderiza canais pra refletir nomes de EPG input atualizados.
+    carregarCanais();
   });
 }
 
-function autorizar(id) { api(`/admin/api/devices/${id}/autorizar`, { method: 'POST' }).then(carregarAparelhos); }
-function revogar(id) { api(`/admin/api/devices/${id}/revogar`, { method: 'POST' }).then(carregarAparelhos); }
-function remover(id) {
-  if (!confirm('Remover este aparelho da lista? Ele volta a aparecer se sincronizar de novo.')) return;
-  api(`/admin/api/devices/${id}`, { method: 'DELETE' }).then(carregarAparelhos);
+function atualizarEpgInput(id) {
+  api(`/admin/api/epg-inputs/${id}/atualizar`, { method: 'POST' })
+    .catch(() => {}) // erro já fica registrado no próprio registro (status/ultimo_erro)
+    .finally(carregarEpgInputs);
 }
-function salvarApelido(id, apelido) { api(`/admin/api/devices/${id}/apelido`, { method: 'POST', body: JSON.stringify({ apelido }) }); }
 
-function enviarArquivo(inputEl, campoDestinoId) {
+function removerEpgInput(id) {
+  if (!confirm('Remover esta fonte de EPG? Canais associados a ela ficam sem EPG até você associar outra.')) return;
+  api(`/admin/api/epg-inputs/${id}`, { method: 'DELETE' }).then(carregarEpgInputs);
+}
+
+// --- Upload genérico ---------------------------------------------------------
+
+function enviarArquivoGenerico(inputEl, msgElId, aoConcluir) {
   const arquivo = inputEl.files[0];
   if (!arquivo) return;
-  const msgId = campoDestinoId === 'playlistUrl' ? 'playlistUploadMsg' : 'epgUploadMsg';
-  const msg = document.getElementById(msgId);
+  const msg = document.getElementById(msgElId);
   msg.className = 'upload-msg';
   msg.textContent = `Enviando ${arquivo.name}...`;
 
   const dados = new FormData();
   dados.append('arquivo', arquivo);
 
-  fetch('/admin/api/upload', {
-    method: 'POST',
-    headers: { 'X-Admin-Token': token },
-    body: dados,
-  })
+  fetch('/admin/api/upload', { method: 'POST', headers: { 'X-Admin-Token': token }, body: dados })
     .then(async (r) => {
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || r.statusText);
       return r.json();
     })
     .then((resultado) => {
-      document.getElementById(campoDestinoId).value = resultado.url;
+      aoConcluir(resultado.url);
       msg.className = 'upload-msg ok';
-      msg.textContent = `Enviado (${(resultado.tamanho / 1024 / 1024).toFixed(1)} MB) — lembre de clicar em Salvar.`;
+      msg.textContent = `Enviado (${(resultado.tamanho / 1024 / 1024).toFixed(1)} MB).`;
     })
     .catch((e) => {
       msg.className = 'upload-msg erro';
@@ -332,6 +620,70 @@ function enviarArquivo(inputEl, campoDestinoId) {
     })
     .finally(() => { inputEl.value = ''; });
 }
+
+// --- Aparelhos ---------------------------------------------------------------
+
+const NOMES_REDE = { wifi: 'Wi-Fi', ethernet: 'Cabo', celular: 'Dados móveis', desconhecida: '—' };
+
+function statusAparelho(d) {
+  if (d.mensagem_bloqueio) return { classe: 'bloqueado', texto: 'Bloqueado' };
+  if (!d.autorizado) return { classe: 'pendente', texto: 'Aguardando' };
+  const ultimaMs = d.ultima_sincronizacao ? new Date(d.ultima_sincronizacao).getTime() : 0;
+  const minutos = (Date.now() - ultimaMs) / 60000;
+  if (minutos > 90) return { classe: 'alerta', texto: 'Offline' };
+  return { classe: 'ok', texto: 'Online' };
+}
+
+function carregarAparelhos() {
+  api('/admin/api/devices').then((lista) => {
+    document.getElementById('totalAparelhos').textContent = lista.length;
+    const corpo = document.getElementById('listaAparelhos');
+    document.getElementById('vazioMsg').style.display = lista.length === 0 ? 'block' : 'none';
+    corpo.innerHTML = lista.map((d) => {
+      const st = statusAparelho(d);
+      return `
+      <tr>
+        <td class="uuid" title="${d.device_id}">${d.device_id.slice(0, 8)}…</td>
+        <td>
+          <input type="text" value="${d.apelido || ''}" placeholder="ex.: Loja Centro"
+            style="width:130px;padding:5px 8px;font-size:12px"
+            onchange="salvarApelido('${d.device_id}', this.value)" />
+        </td>
+        <td><span class="badge ${st.classe}" title="${d.mensagem_bloqueio ? escaparHtml(d.mensagem_bloqueio) : ''}">${st.texto}</span></td>
+        <td class="net">${NOMES_REDE[d.rede] || '—'}</td>
+        <td class="net">${d.latencia_ms != null ? d.latencia_ms + ' ms' : '—'}</td>
+        <td>${formatarData(d.ultima_sincronizacao)}</td>
+        <td class="acoes">
+          ${d.autorizado
+            ? `<button class="perigo" onclick="revogar('${d.device_id}')">Revogar</button>`
+            : `<button onclick="autorizar('${d.device_id}')">Autorizar</button>`}
+          <button class="perigo" onclick="bloquear('${d.device_id}')">Bloquear</button>
+          <button class="secundario" onclick="remover('${d.device_id}')">Remover</button>
+          <button class="secundario" onclick="verLogsDoAparelho('${d.device_id}')">Logs</button>
+        </td>
+      </tr>
+    `;
+    }).join('');
+  });
+}
+
+function autorizar(id) { api(`/admin/api/devices/${id}/autorizar`, { method: 'POST' }).then(carregarAparelhos); }
+function revogar(id) { api(`/admin/api/devices/${id}/revogar`, { method: 'POST' }).then(carregarAparelhos); }
+function bloquear(id) {
+  const mensagem = prompt(
+    'Mensagem mostrada na tela do aparelho (ex.: motivo do bloqueio):',
+    'Equipamento bloqueado. Entre em contato com o suporte técnico.'
+  );
+  if (mensagem === null) return;
+  api(`/admin/api/devices/${id}/bloquear`, { method: 'POST', body: JSON.stringify({ mensagem }) }).then(carregarAparelhos);
+}
+function remover(id) {
+  if (!confirm('Remover este aparelho da lista? Ele volta a aparecer se sincronizar de novo.')) return;
+  api(`/admin/api/devices/${id}`, { method: 'DELETE' }).then(carregarAparelhos);
+}
+function salvarApelido(id, apelido) { api(`/admin/api/devices/${id}/apelido`, { method: 'POST', body: JSON.stringify({ apelido }) }); }
+
+// --- Logs ----------------------------------------------------------------
 
 const NOMES_STATUS = {
   autorizado: 'Autorizado',
@@ -365,6 +717,12 @@ function carregarLogs() {
       </tr>
     `).join('');
   });
+}
+
+// --- Util ----------------------------------------------------------------
+
+function escaparHtml(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 if (token) mostrarPainel();

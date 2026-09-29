@@ -61,9 +61,17 @@ class LockActivity : AppCompatActivity() {
                         return@launch
                     }
                     // Autorizado, mas playlist/EPG ainda não vieram — tenta de novo.
+                    status.setText(R.string.bloqueio_verificando)
                     agendarNovaTentativa()
                 }
-                Sincronizacao.NaoAutorizado -> agendarNovaTentativa()
+                is Sincronizacao.NaoAutorizado -> {
+                    if (resultado.mensagem != null) {
+                        status.text = resultado.mensagem
+                    } else {
+                        status.setText(R.string.bloqueio_verificando)
+                    }
+                    agendarNovaTentativa()
+                }
                 Sincronizacao.Indisponivel -> {
                     status.setText(R.string.bloqueio_erro_rede)
                     agendarNovaTentativa()

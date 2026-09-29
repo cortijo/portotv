@@ -7,6 +7,9 @@ const crypto = require('node:crypto');
 const multer = require('multer');
 const db = require('./db');
 const config = require('./config');
+const m3u = require('./m3u');
+const epg = require('./epg');
+const catalogo = require('./catalogo');
 
 const app = express();
 app.set('trust proxy', true);
@@ -43,52 +46,92 @@ function registrarAcesso(deviceId, status, req) {
   }
 }
 
+const REDES_VALIDAS = new Set(['wifi', 'ethernet', 'celular', 'desconhecida']);
+
+function baseUrl(req) {
+  return process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+}
+
 // ---------------------------------------------------------------------
 // Endpoint que o app Portonet TV chama no boot e periodicamente.
 // Contrato completo em claude/analise-saimotv-e-proposta-portonet.md do
 // projeto — seção 7. Aqui é a implementação real desse contrato.
 // ---------------------------------------------------------------------
 app.get('/sincronizar', (req, res) => {
+  const inicio = Date.now();
   const deviceId = String(req.query.device_id || '').trim();
 
   if (!UUID_V4.test(deviceId)) {
     return res.status(400).json({ status: 'erro', motivo: 'device_id ausente ou inválido' });
   }
 
+  const redeInformada = String(req.query.rede || '').trim().toLowerCase();
+  const rede = REDES_VALIDAS.has(redeInformada) ? redeInformada : 'desconhecida';
+
   const existente = db.prepare('SELECT * FROM devices WHERE device_id = ?').get(deviceId);
   if (existente) {
     db.prepare(
-      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1 WHERE device_id = ?'
-    ).run(agoraISO(), deviceId);
+      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ? WHERE device_id = ?'
+    ).run(agoraISO(), rede, deviceId);
   } else {
     db.prepare(
-      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes) VALUES (?, 0, ?, ?, 1)'
-    ).run(deviceId, agoraISO(), agoraISO());
+      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede) VALUES (?, 0, ?, ?, 1, ?)'
+    ).run(deviceId, agoraISO(), agoraISO(), rede);
+  }
+
+  function finalizar(status, extra) {
+    registrarAcesso(deviceId, status, req);
+    db.prepare('UPDATE devices SET latencia_ms = ? WHERE device_id = ?').run(Date.now() - inicio, deviceId);
+    return res.json({ status, ...extra });
   }
 
   const autorizado = existente ? existente.autorizado === 1 : false;
   if (!autorizado) {
-    registrarAcesso(deviceId, 'nao_autorizado', req);
-    return res.json({ status: 'nao_autorizado' });
+    const mensagem = existente?.mensagem_bloqueio || null;
+    return finalizar('nao_autorizado', mensagem ? { mensagem } : {});
   }
 
+  const usarCatalogoProprio = catalogo.temCatalogo();
   const cfg = config.ler();
-  if (!cfg.playlist_url || !cfg.epg_url) {
-    // Autorizado, mas a Portonet ainda não configurou a playlist/EPG no
-    // painel admin — não faz sentido devolver "autorizado" sem conteúdo.
-    registrarAcesso(deviceId, 'sem_conteudo', req);
-    return res.json({ status: 'nao_autorizado' });
+  const base = baseUrl(req);
+
+  const playlistUrl = usarCatalogoProprio ? `${base}/playlist.m3u8` : cfg.playlist_url;
+  const epgUrl = usarCatalogoProprio ? `${base}/epg.xml` : cfg.epg_url;
+
+  if (!playlistUrl || !epgUrl) {
+    // Autorizado, mas ainda não há canal cadastrado nem playlist/EPG legado
+    // configurado — não faz sentido devolver "autorizado" sem conteúdo.
+    return finalizar('nao_autorizado', {});
   }
 
-  registrarAcesso(deviceId, 'autorizado', req);
-  return res.json({
-    status: 'autorizado',
-    playlist_url: cfg.playlist_url,
-    epg_url: cfg.epg_url,
+  return finalizar('autorizado', {
+    playlist_url: playlistUrl,
+    epg_url: epgUrl,
     playlist_ttl_seconds: cfg.playlist_ttl_seconds,
     epg_ttl_seconds: cfg.epg_ttl_seconds,
     sync_interval_seconds: cfg.sync_interval_seconds,
   });
+});
+
+// ---------------------------------------------------------------------
+// Exportação pública: a playlist e o EPG que o app efetivamente baixa,
+// remontados a partir do catálogo de canais cadastrado no painel — não
+// mais uma URL externa repassada direto (aí sim uma mudança de tvg-id ou
+// uma instabilidade da fonte não quebra o app na hora).
+// ---------------------------------------------------------------------
+app.get('/playlist.m3u8', (_req, res) => {
+  const canais = catalogo.canaisAtivosComFontes();
+  res.type('application/vnd.apple.mpegurl').send(m3u.montar(canais));
+});
+
+app.get('/epg.xml', async (_req, res) => {
+  try {
+    const canais = catalogo.canaisComEpgAssociado();
+    const xml = await epg.montarExportacao(canais);
+    res.type('application/xml').send(xml);
+  } catch (erro) {
+    res.status(500).json({ erro: erro.message });
+  }
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -115,15 +158,27 @@ admin.get('/devices', (_req, res) => {
 });
 
 admin.post('/devices/:id/autorizar', (req, res) => {
-  const info = db.prepare('UPDATE devices SET autorizado = 1 WHERE device_id = ?').run(req.params.id);
+  const info = db.prepare('UPDATE devices SET autorizado = 1, mensagem_bloqueio = NULL WHERE device_id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
   res.json({ ok: true });
 });
 
 admin.post('/devices/:id/revogar', (req, res) => {
-  const info = db.prepare('UPDATE devices SET autorizado = 0 WHERE device_id = ?').run(req.params.id);
+  const info = db.prepare('UPDATE devices SET autorizado = 0, mensagem_bloqueio = NULL WHERE device_id = ?').run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
   res.json({ ok: true });
+});
+
+// Bloqueio explícito, com mensagem — diferente de "revogar" (que só tira a
+// autorização sem explicar o motivo), isso devolve uma mensagem própria
+// pro app mostrar na tela de bloqueio ("fale com o suporte", etc).
+const MENSAGEM_BLOQUEIO_PADRAO = 'Equipamento bloqueado. Entre em contato com o suporte técnico.';
+
+admin.post('/devices/:id/bloquear', (req, res) => {
+  const mensagem = String(req.body?.mensagem || '').trim().slice(0, 300) || MENSAGEM_BLOQUEIO_PADRAO;
+  const info = db.prepare('UPDATE devices SET autorizado = 0, mensagem_bloqueio = ? WHERE device_id = ?').run(mensagem, req.params.id);
+  if (info.changes === 0) return res.status(404).json({ erro: 'aparelho não encontrado' });
+  res.json({ ok: true, mensagem });
 });
 
 admin.post('/devices/:id/apelido', (req, res) => {
@@ -154,6 +209,189 @@ admin.get('/logs', (req, res) => {
     : db.prepare('SELECT * FROM acessos ORDER BY id DESC LIMIT ?').all(limite);
 
   res.json(linhas);
+});
+
+// ---------------------------------------------------------------------
+// Catálogo de canais: importar de uma lista M3U (com pré-visualização —
+// o admin escolhe o que trazer, sem gerar de novo os 313 mil "canais" de
+// um dump de revendedor) ou cadastrar manualmente, e associar cada um a
+// um id de canal dentro de uma entrada de EPG cadastrada à parte.
+// ---------------------------------------------------------------------
+function canalComFontes(id) {
+  const canal = db.prepare('SELECT * FROM canais WHERE id = ?').get(id);
+  if (!canal) return null;
+  const fontes = db.prepare('SELECT * FROM fontes WHERE canal_id = ? ORDER BY ordem, id').all(id);
+  return { ...canal, ativo: canal.ativo === 1, fontes };
+}
+
+admin.get('/canais', (_req, res) => {
+  const canais = db.prepare('SELECT * FROM canais ORDER BY COALESCE(numero, id), id').all();
+  const fontesStmt = db.prepare('SELECT * FROM fontes WHERE canal_id = ? ORDER BY ordem, id');
+  res.json(canais.map((c) => ({ ...c, ativo: c.ativo === 1, fontes: fontesStmt.all(c.id) })));
+});
+
+admin.post('/canais', (req, res) => {
+  const { nome, numero, logo, grupo, url } = req.body || {};
+  if (!nome || !String(nome).trim()) return res.status(400).json({ erro: 'nome é obrigatório' });
+  if (!url || !String(url).trim()) return res.status(400).json({ erro: 'url (fonte do canal) é obrigatória' });
+
+  const info = db.prepare(
+    'INSERT INTO canais (nome, numero, logo, grupo, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)'
+  ).run(String(nome).trim(), numero ? Number(numero) : null, logo || null, grupo || null, agoraISO());
+  db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, 0)').run(info.lastInsertRowid, String(url).trim());
+
+  res.json(canalComFontes(info.lastInsertRowid));
+});
+
+admin.put('/canais/:id', (req, res) => {
+  const canal = db.prepare('SELECT id FROM canais WHERE id = ?').get(req.params.id);
+  if (!canal) return res.status(404).json({ erro: 'canal não encontrado' });
+
+  const { nome, numero, logo, grupo, ativo } = req.body || {};
+  db.prepare(
+    'UPDATE canais SET nome = COALESCE(?, nome), numero = ?, logo = ?, grupo = ?, ativo = ? WHERE id = ?'
+  ).run(
+    nome ? String(nome).trim() : null,
+    numero === undefined ? null : (numero === null ? null : Number(numero)),
+    logo === undefined ? null : logo,
+    grupo === undefined ? null : grupo,
+    ativo === false ? 0 : 1,
+    req.params.id
+  );
+  res.json(canalComFontes(req.params.id));
+});
+
+admin.delete('/canais/:id', (req, res) => {
+  db.prepare('DELETE FROM canais WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+admin.post('/canais/:id/fontes', (req, res) => {
+  const { url } = req.body || {};
+  if (!url || !String(url).trim()) return res.status(400).json({ erro: 'url é obrigatória' });
+  const canal = db.prepare('SELECT id FROM canais WHERE id = ?').get(req.params.id);
+  if (!canal) return res.status(404).json({ erro: 'canal não encontrado' });
+
+  const maxOrdem = db.prepare('SELECT COALESCE(MAX(ordem), -1) AS m FROM fontes WHERE canal_id = ?').get(req.params.id);
+  db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, ?)').run(req.params.id, String(url).trim(), maxOrdem.m + 1);
+  res.json(canalComFontes(req.params.id));
+});
+
+admin.delete('/canais/:canalId/fontes/:fonteId', (req, res) => {
+  db.prepare('DELETE FROM fontes WHERE id = ? AND canal_id = ?').run(req.params.fonteId, req.params.canalId);
+  res.json(canalComFontes(req.params.canalId));
+});
+
+admin.post('/canais/:id/associar-epg', (req, res) => {
+  const { epg_input_id, epg_canal_id } = req.body || {};
+  const canal = db.prepare('SELECT id FROM canais WHERE id = ?').get(req.params.id);
+  if (!canal) return res.status(404).json({ erro: 'canal não encontrado' });
+
+  db.prepare('UPDATE canais SET epg_input_id = ?, epg_canal_id = ? WHERE id = ?').run(
+    epg_input_id || null,
+    epg_canal_id || null,
+    req.params.id
+  );
+  res.json(canalComFontes(req.params.id));
+});
+
+// Importação de M3U em duas etapas: (1) buscar+parsear e devolver a lista
+// pro admin escolher, sem gravar nada ainda; (2) gravar só os escolhidos.
+admin.post('/canais/importar-m3u', async (req, res) => {
+  const url = String(req.body?.url || '').trim();
+  if (!url) return res.status(400).json({ erro: 'url é obrigatória' });
+
+  try {
+    const resposta = await fetch(url, { headers: { 'User-Agent': 'PortonetTV-API/1.0' } });
+    if (!resposta.ok) return res.status(400).json({ erro: `Não consegui baixar a lista (HTTP ${resposta.status})` });
+    const texto = await resposta.text();
+    const entradas = m3u.parse(texto);
+
+    const LIMITE = 3000;
+    const truncada = entradas.length > LIMITE;
+    res.json({
+      total_encontrado: entradas.length,
+      truncada,
+      itens: entradas.slice(0, LIMITE),
+      aviso: truncada
+        ? `A lista tem ${entradas.length} itens — mostrando só os primeiros ${LIMITE}. Prefira uma lista já filtrada pros canais que a Portonet realmente vai oferecer.`
+        : undefined,
+    });
+  } catch (erro) {
+    res.status(400).json({ erro: `Falha ao buscar/ler a lista: ${erro.message}` });
+  }
+});
+
+admin.post('/canais/importar-selecionados', (req, res) => {
+  const itens = Array.isArray(req.body?.itens) ? req.body.itens.slice(0, 2000) : [];
+  if (itens.length === 0) return res.status(400).json({ erro: 'nenhum item selecionado' });
+
+  const inserirCanal = db.prepare('INSERT INTO canais (nome, logo, grupo, ativo, criado_em) VALUES (?, ?, ?, 1, ?)');
+  const inserirFonte = db.prepare('INSERT INTO fontes (canal_id, url, ordem) VALUES (?, ?, 0)');
+
+  let importados = 0;
+  for (const item of itens) {
+    const nome = String(item.tvgName || item.nome || '').trim();
+    const url = String(item.url || '').trim();
+    if (!nome || !url) continue;
+    const info = inserirCanal.run(nome, item.tvgLogo || item.logo || null, item.grupo || null, agoraISO());
+    inserirFonte.run(info.lastInsertRowid, url);
+    importados++;
+  }
+
+  res.json({ ok: true, importados });
+});
+
+// ---------------------------------------------------------------------
+// Entradas de EPG: fontes XMLTV cadastradas à parte, que os canais do
+// catálogo se associam pra herdar a programação.
+// ---------------------------------------------------------------------
+admin.get('/epg-inputs', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM epg_inputs ORDER BY nome').all());
+});
+
+admin.post('/epg-inputs', (req, res) => {
+  const { nome, url } = req.body || {};
+  if (!nome || !String(nome).trim()) return res.status(400).json({ erro: 'nome é obrigatório' });
+  if (!url || !String(url).trim()) return res.status(400).json({ erro: 'url é obrigatória' });
+
+  const info = db.prepare(
+    'INSERT INTO epg_inputs (nome, url, status, criado_em) VALUES (?, ?, ?, ?)'
+  ).run(String(nome).trim(), String(url).trim(), 'nunca_sincronizado', agoraISO());
+  res.json(db.prepare('SELECT * FROM epg_inputs WHERE id = ?').get(info.lastInsertRowid));
+});
+
+admin.delete('/epg-inputs/:id', (req, res) => {
+  db.prepare('DELETE FROM epg_inputs WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+admin.post('/epg-inputs/:id/atualizar', async (req, res) => {
+  const input = db.prepare('SELECT * FROM epg_inputs WHERE id = ?').get(req.params.id);
+  if (!input) return res.status(404).json({ erro: 'entrada de EPG não encontrada' });
+
+  try {
+    const dados = await epg.atualizar(input.id, input.url);
+    db.prepare(
+      'UPDATE epg_inputs SET status = ?, total_canais_encontrados = ?, ultima_atualizacao = ?, ultimo_erro = NULL WHERE id = ?'
+    ).run('ok', dados.canais.size, agoraISO(), input.id);
+    res.json(db.prepare('SELECT * FROM epg_inputs WHERE id = ?').get(input.id));
+  } catch (erro) {
+    db.prepare('UPDATE epg_inputs SET status = ?, ultimo_erro = ? WHERE id = ?').run('erro', erro.message, input.id);
+    res.status(400).json(db.prepare('SELECT * FROM epg_inputs WHERE id = ?').get(input.id));
+  }
+});
+
+admin.get('/epg-inputs/:id/canais', async (req, res) => {
+  const input = db.prepare('SELECT * FROM epg_inputs WHERE id = ?').get(req.params.id);
+  if (!input) return res.status(404).json({ erro: 'entrada de EPG não encontrada' });
+
+  try {
+    const canais = await epg.listarCanaisDoInput(input.id, input.url, req.query.forcar === '1');
+    res.json({ canais });
+  } catch (erro) {
+    res.status(400).json({ erro: erro.message });
+  }
 });
 
 // ---------------------------------------------------------------------
