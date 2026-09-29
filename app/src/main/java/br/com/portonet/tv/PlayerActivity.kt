@@ -32,12 +32,16 @@ import java.util.Locale
  *  - CIMA/BAIXO ou CANAL+/CANAL-: troca de canal direto.
  *  - ESQUERDA: abre a lista de canais; DIREITA/OK dentro dela: sintoniza.
  *  - 0-9: monta o número do canal, confirma sozinho após um instante.
- *  - VOLTAR: fecha a lista se estiver aberta; senão não faz nada (não há
- *    "sair" do app — é a própria TV).
+ *  - CENTRO/OK (fora da lista): abre o guia de programação (grade canais ×
+ *    horário); CIMA/BAIXO navega, OK sintoniza.
+ *  - VOLTAR: fecha o que estiver aberto (lista ou guia); senão não faz nada
+ *    (não há "sair" do app — é a própria TV).
  *
  * Em telas de toque (útil pra testar no celular antes de ter um TV Box à
- * mão): deslizar pra cima/baixo troca de canal, e tocar abre/fecha a lista
- * — só um atalho de teste, não substitui o controle remoto no TV Box real.
+ * mão): deslizar pra cima/baixo troca de canal, deslizar da direita pra
+ * esquerda abre a lista de canais, e tocar no meio abre o guia de
+ * programação — só um atalho de teste, não substitui o controle remoto no
+ * TV Box real.
  */
 @UnstableApi
 class PlayerActivity : AppCompatActivity() {
@@ -48,6 +52,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var listaPainel: View
     private lateinit var listaCanais: RecyclerView
     private lateinit var numpad: TextView
+    private lateinit var epgGrid: EpgGridView
 
     private val handler = Handler(Looper.getMainLooper())
     private val relogio = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
@@ -96,6 +101,8 @@ class PlayerActivity : AppCompatActivity() {
         banner = findViewById(R.id.banner)
         listaPainel = findViewById(R.id.listaPainel)
         numpad = findViewById(R.id.numpad)
+        epgGrid = findViewById(R.id.epgGrid)
+        epgGrid.aoSelecionarCanal = { indice -> sintonizar(indice, fecharLista = false); fecharEpgGrid() }
 
         listaCanais = findViewById(R.id.listaCanais)
         listaCanais.layoutManager = LinearLayoutManager(this)
@@ -129,12 +136,12 @@ class PlayerActivity : AppCompatActivity() {
             override fun onDown(e: MotionEvent) = true
 
             override fun onSingleTapUp(e: MotionEvent): Boolean {
-                // Tocar no meio da tela mostra o banner com o canal atual e a
-                // programação (agora/próximo) — igual apertar "info" no controle.
-                if (listaPainel.visibility == View.VISIBLE) {
-                    fecharListaCanais()
-                } else {
-                    mostrarBanner()
+                // Tocar no meio da tela abre o guia de programação — igual
+                // apertar "guia"/OK no controle.
+                when {
+                    epgGrid.visibility == View.VISIBLE -> Unit // a própria grade trata o toque
+                    listaPainel.visibility == View.VISIBLE -> fecharListaCanais()
+                    else -> abrirEpgGrid()
                 }
                 return true
             }
@@ -266,6 +273,20 @@ class PlayerActivity : AppCompatActivity() {
         listaPainel.visibility = View.GONE
     }
 
+    // --- Guia de programação (grade canais × horário) ----------------------
+
+    private fun abrirEpgGrid() {
+        fecharListaCanais()
+        handler.removeCallbacks(esconderBanner)
+        banner.visibility = View.GONE
+        epgGrid.definir(adapter.channels, ContentRepository.epg, atual)
+        epgGrid.visibility = View.VISIBLE
+    }
+
+    private fun fecharEpgGrid() {
+        epgGrid.visibility = View.GONE
+    }
+
     // --- Numpad --------------------------------------------------------
 
     private fun digitarNumero(digito: Char) {
@@ -309,6 +330,8 @@ class PlayerActivity : AppCompatActivity() {
     // --- Controle remoto -----------------------------------------------
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (epgGrid.visibility == View.VISIBLE) return tratarTeclaNoGuia(keyCode)
+
         if (keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
             digitarNumero('0' + (keyCode - KeyEvent.KEYCODE_0))
             return true
@@ -324,10 +347,23 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_DPAD_LEFT -> {
                 if (listaPainel.visibility != View.VISIBLE) { abrirListaCanais(); true } else false
             }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (listaPainel.visibility != View.VISIBLE) { abrirEpgGrid(); true } else false
+            }
             KeyEvent.KEYCODE_BACK -> {
                 if (listaPainel.visibility == View.VISIBLE) { fecharListaCanais(); true } else false
             }
             else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
+    private fun tratarTeclaNoGuia(keyCode: Int): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> { epgGrid.moverFoco(-1); true }
+            KeyEvent.KEYCODE_DPAD_DOWN -> { epgGrid.moverFoco(1); true }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { epgGrid.confirmarFoco(); true }
+            KeyEvent.KEYCODE_BACK -> { fecharEpgGrid(); true }
+            else -> true // engole o resto enquanto o guia está aberto (não deixa trocar de canal por baixo)
         }
     }
 

@@ -105,4 +105,12 @@
             android:paddingVertical="16dp" />
     </FrameLayout>
 
+    <!-- Guia de programação (grade canais × horário) — toque no meio da tela
+         abre, VOLTAR fecha. -->
+    <br.com.portonet.tv.EpgGridView
+        android:id="@+id/epgGrid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
 </FrameLayout>
