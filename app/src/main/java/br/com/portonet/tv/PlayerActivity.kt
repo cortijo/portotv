@@ -32,16 +32,16 @@ import java.util.Locale
  *  - CIMA/BAIXO ou CANAL+/CANAL-: troca de canal direto.
  *  - ESQUERDA: abre a lista de canais; DIREITA/OK dentro dela: sintoniza.
  *  - 0-9: monta o número do canal, confirma sozinho após um instante.
- *  - CENTRO/OK (fora da lista): mostra as informações do canal (nome, logo,
- *    programa atual/a seguir).
+ *  - CENTRO/OK (fora da lista), um clique: mostra as informações do canal
+ *    (nome, logo, programa atual/a seguir). Dois cliques seguidos: abre a
+ *    lista de canais na lateral.
  *  - VOLTAR: fecha a lista se estiver aberta; senão não faz nada (não há
  *    "sair" do app — é a própria TV).
  *
  * Em telas de toque (útil pra testar no celular antes de ter um TV Box à
- * mão): deslizar pra cima/baixo troca de canal, deslizar da direita pra
- * esquerda abre a lista de canais, e tocar no meio mostra as informações do
- * canal — só um atalho de teste, não substitui o controle remoto no TV Box
- * real.
+ * mão): deslizar pra cima/baixo troca de canal, um toque no meio mostra as
+ * informações do canal, dois toques seguidos abrem a lista de canais — só
+ * um atalho de teste, não substitui o controle remoto no TV Box real.
  */
 @UnstableApi
 class PlayerActivity : AppCompatActivity() {
@@ -65,6 +65,8 @@ class PlayerActivity : AppCompatActivity() {
 
     private val esconderBanner = Runnable { banner.visibility = View.GONE }
     private val confirmarNumpad = Runnable { confirmarNumero() }
+    private val mostrarBannerAdiado = Runnable { mostrarBanner() }
+    private var ultimoOkMs = 0L
 
     private var intervaloSincMs = INTERVALO_SINC_PADRAO_MS
 
@@ -90,6 +92,7 @@ class PlayerActivity : AppCompatActivity() {
         const val PRIMEIRA_SINC_MS = 60_000L
         const val SWIPE_DISTANCIA_MIN = 60
         const val SWIPE_VELOCIDADE_MIN = 200
+        const val DUPLO_CLIQUE_MS = 300L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -132,10 +135,18 @@ class PlayerActivity : AppCompatActivity() {
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent) = true
 
-            override fun onSingleTapUp(e: MotionEvent): Boolean {
-                // Tocar no meio da tela mostra as informações do canal — igual
-                // apertar OK no controle.
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                // Um toque no meio da tela mostra as informações do canal —
+                // igual apertar OK no controle. Espera um instante pra saber
+                // se não é o primeiro toque de um duplo-toque (que abre a
+                // lista lateral).
                 if (listaPainel.visibility == View.VISIBLE) fecharListaCanais() else mostrarBanner()
+                return true
+            }
+
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                // Dois toques na tela abrem a lista de canais na lateral.
+                if (listaPainel.visibility != View.VISIBLE) abrirListaCanais()
                 return true
             }
 
@@ -308,6 +319,25 @@ class PlayerActivity : AppCompatActivity() {
 
     // --- Controle remoto -----------------------------------------------
 
+    /**
+     * OK/centro: um clique mostra as informações do canal, dois cliques
+     * seguidos (dentro de [DUPLO_CLIQUE_MS]) abrem a lista de canais na
+     * lateral — espera um instante antes de mostrar o banner pra saber se
+     * não vem um segundo clique.
+     */
+    private fun tratarCliqueOk() {
+        val agora = System.currentTimeMillis()
+        if (agora - ultimoOkMs <= DUPLO_CLIQUE_MS) {
+            handler.removeCallbacks(mostrarBannerAdiado)
+            ultimoOkMs = 0L
+            abrirListaCanais()
+        } else {
+            ultimoOkMs = agora
+            handler.removeCallbacks(mostrarBannerAdiado)
+            handler.postDelayed(mostrarBannerAdiado, DUPLO_CLIQUE_MS)
+        }
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
             digitarNumero('0' + (keyCode - KeyEvent.KEYCODE_0))
@@ -325,7 +355,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (listaPainel.visibility != View.VISIBLE) { abrirListaCanais(); true } else false
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                if (listaPainel.visibility != View.VISIBLE) { mostrarBanner(); true } else false
+                if (listaPainel.visibility != View.VISIBLE) { tratarCliqueOk(); true } else false
             }
             KeyEvent.KEYCODE_BACK -> {
                 if (listaPainel.visibility == View.VISIBLE) { fecharListaCanais(); true } else false
