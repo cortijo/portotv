@@ -6,6 +6,13 @@
     ultrapassar a altura visível. Sem rolagem, tudo que passasse da borda
     inferior ficava simplesmente invisível — o que explica um aparelho
     mostrar só a logo, sem nenhum texto de status abaixo dela.
+
+    NÃO usar fillViewport + layout_height="match_parent" no filho direto:
+    esse combo (o jeito "oficial" de centralizar verticalmente) mediu
+    altura zero em pelo menos uma ROM de TV Box testada, apagando TODO o
+    conteúdo (nem a logo aparecia, só o fundo branco). Por isso o filho
+    fica em wrap_content — perde a centralização perfeita em telas bem
+    altas, mas garante que o conteúdo sempre é desenhado.
 -->
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -13,13 +20,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/branco"
-    android:fillViewport="true">
+    android:fillViewport="false">
 
     <LinearLayout
         android:id="@+id/fundoBloqueio"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
         android:paddingHorizontal="32dp"
         android:paddingVertical="24dp">
