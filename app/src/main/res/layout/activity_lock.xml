@@ -1,71 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    ScrollView é essencial aqui: em TV Boxes com altura de tela pequena
+    (muitas rodam em ~720p ou menos), uma coluna vertical fixa com logo +
+    spinner + título + instrução + caixa de UUID + status pode facilmente
+    ultrapassar a altura visível. Sem rolagem, tudo que passasse da borda
+    inferior ficava simplesmente invisível — o que explica um aparelho
+    mostrar só a logo, sem nenhum texto de status abaixo dela.
+-->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/fundoBloqueio"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/branco"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="48dp">
+    android:fillViewport="true">
 
-    <ImageView
-        android:id="@+id/logo"
-        android:layout_width="280dp"
+    <LinearLayout
+        android:id="@+id/fundoBloqueio"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:contentDescription="@string/app_name"
-        android:src="@drawable/logo_portonet" />
-
-    <ProgressBar
-        android:id="@+id/progresso"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_marginBottom="24dp"
-        android:indeterminate="true"
-        android:indeterminateTint="@color/portonet_azul_marinho"
-        android:indeterminateTintMode="src_in" />
-
-    <TextView
-        android:id="@+id/titulo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/bloqueio_titulo"
-        android:textColor="@color/portonet_azul_marinho"
-        android:textSize="24sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/instrucao"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:minHeight="match_parent"
         android:gravity="center"
-        android:text="@string/bloqueio_instrucao"
-        android:textColor="@color/portonet_cinza_texto"
-        android:textSize="16sp" />
+        android:orientation="vertical"
+        android:paddingHorizontal="32dp"
+        android:paddingVertical="24dp">
 
-    <TextView
-        android:id="@+id/uuid"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:background="@drawable/fundo_codigo"
-        android:fontFamily="monospace"
-        android:letterSpacing="0.05"
-        android:padding="16dp"
-        android:textColor="@color/portonet_azul_marinho"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        tools:text="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="180dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/logo_portonet" />
 
-    <TextView
-        android:id="@+id/status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/bloqueio_verificando"
-        android:textColor="@color/portonet_cinza_texto"
-        android:textSize="14sp" />
+        <ProgressBar
+            android:id="@+id/progresso"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginBottom="16dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/portonet_azul_marinho"
+            android:indeterminateTintMode="src_in" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/titulo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/bloqueio_titulo"
+            android:textColor="@color/portonet_azul_marinho"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/instrucao"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="@string/bloqueio_instrucao"
+            android:textColor="@color/portonet_cinza_texto"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/uuid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/fundo_codigo"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.05"
+            android:padding="12dp"
+            android:textColor="@color/portonet_azul_marinho"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            tools:text="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center"
+            android:text="@string/bloqueio_verificando"
+            android:textColor="@color/portonet_cinza_texto"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+</ScrollView>
