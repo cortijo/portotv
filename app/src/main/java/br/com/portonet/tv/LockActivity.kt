@@ -36,6 +36,7 @@ class LockActivity : AppCompatActivity() {
         setContentView(R.layout.activity_lock)
 
         findViewById<android.widget.TextView>(R.id.uuid).text = DeviceId.get(this)
+        mostrarAguardando()
         tentarSincronizar()
         EventosSse.observar(lifecycleScope) { tentarSincronizar() }
     }
@@ -47,11 +48,16 @@ class LockActivity : AppCompatActivity() {
      * plano B, se a rede falhar de verdade (sem isso, uma instabilidade
      * momentânea não devia travar a tela de bloqueio à toa — ver seção 3.1
      * do documento de arquitetura).
+     *
+     * NÃO mexe na tela antes de saber o resultado — só depois que a resposta
+     * chega. Fazer isso no início (como antes) sobrescrevia a mensagem de
+     * bloqueio de volta pro spinner a cada nova tentativa (a cada 5s, ou a
+     * cada evento em tempo real), fazendo o aviso praticamente nunca
+     * aparecer de verdade pro usuário.
      */
     private fun tentarSincronizar() {
         if (tentando) return
         tentando = true
-        mostrarAguardando()
 
         lifecycleScope.launch {
             when (val resultado = Provisioning.sincronizar(this@LockActivity)) {
