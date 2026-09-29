@@ -1,15 +1,11 @@
 package br.com.portonet.tv
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import coil3.load
 import kotlinx.coroutines.launch
@@ -30,7 +26,6 @@ class LockActivity : AppCompatActivity() {
 
     private companion object {
         const val RETENTATIVA_MS = 5_000L
-        const val CODIGO_PERMISSAO_LOCALIZACAO = 1001
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,37 +33,8 @@ class LockActivity : AppCompatActivity() {
         setContentView(R.layout.activity_lock)
 
         findViewById<android.widget.TextView>(R.id.uuid).text = DeviceId.get(this)
-        solicitarPermissaoLocalizacaoSeNecessario()
         tentarSincronizar()
         EventosSse.observar(lifecycleScope) { tentarSincronizar() }
-    }
-
-    /**
-     * Só serve para destravar a leitura do RSSI do Wi-Fi (ver Provisioning.
-     * sinalWifi) — nunca bloqueia o fluxo de sincronização, concedida ou
-     * não, negada ou ignorada pelo instalador do TV Box.
-     */
-    private fun solicitarPermissaoLocalizacaoSeNecessario() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                CODIGO_PERMISSAO_LOCALIZACAO
-            )
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // Nada a fazer com o resultado — só log implícito via sistema. O
-        // sinal Wi-Fi é informativo; a sincronização já segue seu fluxo
-        // normal independente da permissão ser concedida ou não.
     }
 
     /**
