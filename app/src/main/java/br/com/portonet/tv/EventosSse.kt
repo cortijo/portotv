@@ -51,14 +51,24 @@ object EventosSse {
                         .url("$BASE_URL/eventos")
                         .header("User-Agent", "PortonetTV/1.0")
                         .build()
-                    client.newCall(request).execute().use { resposta ->
-                        if (!resposta.isSuccessful) return@use
-                        val fonte = resposta.body?.source() ?: return@use
-                        while (isActive) {
-                            val linha = fonte.readUtf8Line() ?: break
-                            if (linha.isBlank() || linha.startsWith(":")) continue
-                            if (linha.startsWith("data:")) aoReceberEvento()
+                    val call = client.newCall(request)
+                    // execute() é bloqueante, não suspensa — sem isso, cancelar o
+                    // escopo (Activity finalizando) não interrompe a leitura presa
+                    // no socket, e a conexão fica pendurada indefinidamente
+                    // chamando aoReceberEvento() contra uma Activity já destruída.
+                    val cancelamento = coroutineContext.job.invokeOnCompletion { call.cancel() }
+                    try {
+                        call.execute().use { resposta ->
+                            if (!resposta.isSuccessful) return@use
+                            val fonte = resposta.body?.source() ?: return@use
+                            while (isActive) {
+                                val linha = fonte.readUtf8Line() ?: break
+                                if (linha.isBlank() || linha.startsWith(":")) continue
+                                if (linha.startsWith("data:")) aoReceberEvento()
+                            }
                         }
+                    } finally {
+                        cancelamento.dispose()
                     }
                 }.onFailure { Log.w("EventosSse", "conexão SSE caiu, reconectando em ${RECONEXAO_MS}ms", it) }
 
