@@ -318,7 +318,8 @@ admin.post('/canais/importar-m3u', async (req, res) => {
         : undefined,
     });
   } catch (erro) {
-    res.status(400).json({ erro: `Falha ao buscar/ler a lista: ${erro.message}` });
+    const causa = erro.cause?.message || erro.cause?.code || erro.message;
+    res.status(400).json({ erro: `Falha ao buscar/ler a lista: ${causa}` });
   }
 });
 

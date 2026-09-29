@@ -10,6 +10,12 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN:-portonet}
     volumes:
       - portonet_data:/data
+    # Permite ao container alcançar serviços rodando no próprio host (fora
+    # do Docker) por "host.docker.internal" — necessário pra cadastrar uma
+    # fonte de EPG/playlist que roda em "localhost" do servidor: dentro do
+    # container, "localhost" é o próprio container, não o host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   portonet_data:

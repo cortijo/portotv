@@ -25,8 +25,16 @@ function comoArray(valor) {
 }
 
 async function buscarEProcessar(url) {
-  const resposta = await fetch(url, { headers: { 'User-Agent': 'PortonetTV-API/1.0' } });
-  if (!resposta.ok) throw new Error(`HTTP ${resposta.status} ao buscar o XMLTV`);
+  let resposta;
+  try {
+    resposta = await fetch(url, { headers: { 'User-Agent': 'PortonetTV-API/1.0' } });
+  } catch (erro) {
+    // undici só devolve "fetch failed" na mensagem principal — a causa real
+    // (DNS, conexão recusada, timeout) fica em erro.cause.
+    const causa = erro.cause?.message || erro.cause?.code || erro.message;
+    throw new Error(`Falha de rede ao buscar "${url}": ${causa}`);
+  }
+  if (!resposta.ok) throw new Error(`HTTP ${resposta.status} ao buscar o XMLTV em "${url}"`);
   const texto = await resposta.text();
 
   const doc = parser.parse(texto);
