@@ -16,7 +16,7 @@ A API sobe em `http://localhost:9966`. O painel admin fica em `http://localhost:
 
 1. Ligar um TV Box novo com o app instalado → ele aparece na lista do painel como **"Aguardando"**, com o UUID visível também na própria tela de bloqueio do app.
 2. No painel, clicar **Autorizar** (dá pra dar um apelido, tipo "Loja Centro", pra não depender de decorar UUID).
-3. Preencher **uma vez** a URL da playlist M3U e do EPG XMLTV no topo do painel e salvar — vale para todos os aparelhos autorizados (não há personalização por assinante nesta primeira versão; se for necessário no futuro, dá pra estender por aparelho sem mudar o app).
+3. Preencher **uma vez** a URL da playlist M3U e do EPG XMLTV no topo do painel e salvar — vale para todos os aparelhos autorizados (não há personalização por assinante nesta primeira versão; se for necessário no futuro, dá pra estender por aparelho sem mudar o app). Em vez de colar uma URL externa, também dá pra clicar em **"Enviar arquivo"** e subir o `.m3u`/`.m3u8` ou `.xml` direto — a API hospeda o arquivo e preenche a URL sozinha.
 4. O TV Box sincroniza sozinho (no boot e a cada 30 min por padrão) e passa a tocar.
 5. Para desligar um assinante, **Revogar** — na sincronização seguinte (até 30 min, ou na próxima vez que ligar) o app volta pra tela de bloqueio sozinho.
 
@@ -33,12 +33,16 @@ A API sobe em `http://localhost:9966`. O painel admin fica em `http://localhost:
 | `DELETE /admin/api/devices/:id` | Remove o registro (volta a aparecer se sincronizar de novo) (token) |
 | `GET /admin/api/config` | Lê playlist/EPG/TTLs (token) |
 | `POST /admin/api/config` | Grava playlist/EPG/TTLs (token) |
+| `POST /admin/api/upload` | Sobe um `.m3u`/`.m3u8`/`.xml` (campo `arquivo`, multipart, até 100 MB) e devolve a URL pública em `/arquivos/...` (token) |
+| `GET /admin/api/logs` | Histórico de sincronizações (`?device_id=` filtra, `?limit=` padrão 200, máx. 2000) (token) |
 
 Todos os endpoints `/admin/api/*` exigem o cabeçalho `X-Admin-Token: <ADMIN_TOKEN>` (o painel HTML cuida disso sozinho depois do login).
 
 ## Dados
 
-Tudo fica em `/data/portonet.db` (SQLite, via `node:sqlite` nativo do Node 22 — sem dependência nativa para compilar). O volume Docker `portonet_data` persiste entre reinícios do container.
+Tudo fica em `/data/portonet.db` (SQLite, via `node:sqlite` nativo do Node 22 — sem dependência nativa para compilar) e os arquivos enviados pelo painel em `/data/uploads/`. O volume Docker `portonet_data` persiste ambos entre reinícios do container.
+
+Cada `/sincronizar` fica registrado na tabela `acessos` (dispositivo, status, IP, data/hora) — o painel expõe isso na seção "Logs de acesso", com filtro por UUID. A tabela é podada automaticamente mantendo as últimas ~50 mil linhas.
 
 ## Conectar o app a esta API
 

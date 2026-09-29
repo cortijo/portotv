@@ -23,6 +23,18 @@ db.exec(`
     chave TEXT PRIMARY KEY,
     valor TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS acessos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    ip TEXT,
+    user_agent TEXT,
+    quando TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_acessos_device ON acessos (device_id);
+  CREATE INDEX IF NOT EXISTS idx_acessos_quando ON acessos (quando);
 `);
 
 // Configuração padrão na primeira execução — o time da Portonet troca depois

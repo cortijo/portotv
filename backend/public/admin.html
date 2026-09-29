@@ -66,6 +66,22 @@
   .rodape-form { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
   .ok-msg { color: var(--verde); font-size: 12px; }
   .vazio { color: var(--cinza-claro); font-size: 13px; padding: 20px 0; text-align: center; }
+  .upload-linha { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .btn-upload {
+    background: #EEF1F8; color: var(--azul); border-radius: 6px; padding: 6px 10px;
+    font-size: 12px; font-weight: 600; cursor: pointer; display: inline-block;
+  }
+  .upload-msg { font-size: 12px; color: var(--cinza-claro); }
+  .upload-msg.ok { color: var(--verde); }
+  .upload-msg.erro { color: var(--vermelho); }
+  .logs-filtro { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .logs-filtro input { flex: 1; }
+  .logs-filtro button { white-space: nowrap; }
+  .status-txt { font-size: 12px; }
+  .status-txt.autorizado { color: var(--verde); }
+  .status-txt.nao_autorizado { color: var(--vermelho); }
+  .status-txt.sem_conteudo { color: #B8860B; }
+  .link-logs { font-size: 11px; color: var(--azul-vivo); cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -97,10 +113,20 @@
         <div>
           <label>URL da playlist M3U</label>
           <input type="text" id="playlistUrl" placeholder="https://.../lista.m3u8" />
+          <div class="upload-linha">
+            <label class="btn-upload" for="playlistArquivo">Enviar arquivo (.m3u/.m3u8)</label>
+            <input type="file" id="playlistArquivo" accept=".m3u,.m3u8" style="display:none" onchange="enviarArquivo(this, 'playlistUrl')" />
+            <span class="upload-msg" id="playlistUploadMsg"></span>
+          </div>
         </div>
         <div>
           <label>URL do EPG (XMLTV)</label>
           <input type="text" id="epgUrl" placeholder="https://.../guia.xml" />
+          <div class="upload-linha">
+            <label class="btn-upload" for="epgArquivo">Enviar arquivo (.xml)</label>
+            <input type="file" id="epgArquivo" accept=".xml" style="display:none" onchange="enviarArquivo(this, 'epgUrl')" />
+            <span class="upload-msg" id="epgUploadMsg"></span>
+          </div>
         </div>
       </div>
       <div class="grid3">
@@ -143,6 +169,27 @@
       </table>
       <div class="vazio" id="vazioMsg" style="display:none">Nenhum aparelho sincronizou ainda.</div>
     </div>
+
+    <div class="card">
+      <h2>Logs de acesso</h2>
+      <div class="logs-filtro">
+        <input type="text" id="logsDeviceId" placeholder="Filtrar por UUID do aparelho (vazio = todos)" />
+        <button class="secundario" onclick="carregarLogs()">Filtrar</button>
+        <button class="secundario" onclick="limparFiltroLogs()">Limpar</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>UUID</th>
+            <th>Status</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody id="listaLogs"></tbody>
+      </table>
+      <div class="vazio" id="vazioLogsMsg" style="display:none">Nenhum acesso registrado ainda.</div>
+    </div>
   </main>
 </div>
 
@@ -178,7 +225,9 @@ function mostrarPainel() {
   document.getElementById('painel').style.display = 'block';
   carregarConfig();
   carregarAparelhos();
+  carregarLogs();
   setInterval(carregarAparelhos, 15000);
+  setInterval(carregarLogs, 15000);
 }
 
 function carregarConfig() {
@@ -237,6 +286,7 @@ function carregarAparelhos() {
             ? `<button class="perigo" onclick="revogar('${d.device_id}')">Revogar</button>`
             : `<button onclick="autorizar('${d.device_id}')">Autorizar</button>`}
           <button class="secundario" onclick="remover('${d.device_id}')">Remover</button>
+          <button class="secundario" onclick="verLogsDoAparelho('${d.device_id}')">Logs</button>
         </td>
       </tr>
     `).join('');
@@ -250,6 +300,72 @@ function remover(id) {
   api(`/admin/api/devices/${id}`, { method: 'DELETE' }).then(carregarAparelhos);
 }
 function salvarApelido(id, apelido) { api(`/admin/api/devices/${id}/apelido`, { method: 'POST', body: JSON.stringify({ apelido }) }); }
+
+function enviarArquivo(inputEl, campoDestinoId) {
+  const arquivo = inputEl.files[0];
+  if (!arquivo) return;
+  const msgId = campoDestinoId === 'playlistUrl' ? 'playlistUploadMsg' : 'epgUploadMsg';
+  const msg = document.getElementById(msgId);
+  msg.className = 'upload-msg';
+  msg.textContent = `Enviando ${arquivo.name}...`;
+
+  const dados = new FormData();
+  dados.append('arquivo', arquivo);
+
+  fetch('/admin/api/upload', {
+    method: 'POST',
+    headers: { 'X-Admin-Token': token },
+    body: dados,
+  })
+    .then(async (r) => {
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || r.statusText);
+      return r.json();
+    })
+    .then((resultado) => {
+      document.getElementById(campoDestinoId).value = resultado.url;
+      msg.className = 'upload-msg ok';
+      msg.textContent = `Enviado (${(resultado.tamanho / 1024 / 1024).toFixed(1)} MB) — lembre de clicar em Salvar.`;
+    })
+    .catch((e) => {
+      msg.className = 'upload-msg erro';
+      msg.textContent = e.message;
+    })
+    .finally(() => { inputEl.value = ''; });
+}
+
+const NOMES_STATUS = {
+  autorizado: 'Autorizado',
+  nao_autorizado: 'Não autorizado',
+  sem_conteudo: 'Autorizado (sem playlist/EPG configurado)',
+};
+
+function verLogsDoAparelho(id) {
+  document.getElementById('logsDeviceId').value = id;
+  carregarLogs();
+  document.getElementById('logsDeviceId').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function limparFiltroLogs() {
+  document.getElementById('logsDeviceId').value = '';
+  carregarLogs();
+}
+
+function carregarLogs() {
+  const deviceId = document.getElementById('logsDeviceId').value.trim();
+  const query = deviceId ? `?device_id=${encodeURIComponent(deviceId)}&limit=300` : '?limit=300';
+  api(`/admin/api/logs${query}`).then((lista) => {
+    const corpo = document.getElementById('listaLogs');
+    document.getElementById('vazioLogsMsg').style.display = lista.length === 0 ? 'block' : 'none';
+    corpo.innerHTML = lista.map((l) => `
+      <tr>
+        <td>${formatarData(l.quando)}</td>
+        <td class="uuid">${l.device_id}</td>
+        <td><span class="status-txt ${l.status}">${NOMES_STATUS[l.status] || l.status}</span></td>
+        <td>${l.ip || '—'}</td>
+      </tr>
+    `).join('');
+  });
+}
 
 if (token) mostrarPainel();
 </script>

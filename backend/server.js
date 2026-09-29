@@ -2,10 +2,14 @@
 
 const express = require('express');
 const path = require('node:path');
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const multer = require('multer');
 const db = require('./db');
 const config = require('./config');
 
 const app = express();
+app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -13,8 +17,30 @@ const PORT = process.env.PORT || 9966;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'portonet';
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Arquivos enviados pelo painel (playlist M3U/M3U8, EPG XMLTV) — servidos
+// estaticamente em /arquivos/<nome>, para virar a própria playlist_url/epg_url.
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'data', 'uploads');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+app.use('/arquivos', express.static(UPLOADS_DIR, { maxAge: 0 }));
+
 function agoraISO() {
   return new Date().toISOString();
+}
+
+function registrarAcesso(deviceId, status, req) {
+  db.prepare(
+    'INSERT INTO acessos (device_id, status, ip, user_agent, quando) VALUES (?, ?, ?, ?, ?)'
+  ).run(deviceId, status, req.ip || '', String(req.get('user-agent') || '').slice(0, 300), agoraISO());
+
+  // Poda leve pra não deixar a tabela crescer sem limite num aparelho que
+  // sincroniza a cada 30 min por anos — mantém as últimas ~50 mil linhas.
+  if (Math.random() < 0.01) {
+    db.exec(`
+      DELETE FROM acessos WHERE id NOT IN (
+        SELECT id FROM acessos ORDER BY id DESC LIMIT 50000
+      )
+    `);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -42,6 +68,7 @@ app.get('/sincronizar', (req, res) => {
 
   const autorizado = existente ? existente.autorizado === 1 : false;
   if (!autorizado) {
+    registrarAcesso(deviceId, 'nao_autorizado', req);
     return res.json({ status: 'nao_autorizado' });
   }
 
@@ -49,9 +76,11 @@ app.get('/sincronizar', (req, res) => {
   if (!cfg.playlist_url || !cfg.epg_url) {
     // Autorizado, mas a Portonet ainda não configurou a playlist/EPG no
     // painel admin — não faz sentido devolver "autorizado" sem conteúdo.
+    registrarAcesso(deviceId, 'sem_conteudo', req);
     return res.json({ status: 'nao_autorizado' });
   }
 
+  registrarAcesso(deviceId, 'autorizado', req);
   return res.json({
     status: 'autorizado',
     playlist_url: cfg.playlist_url,
@@ -110,6 +139,63 @@ admin.delete('/devices/:id', (req, res) => {
 
 admin.get('/config', (_req, res) => res.json(config.ler()));
 admin.post('/config', (req, res) => res.json(config.salvar(req.body || {})));
+
+// ---------------------------------------------------------------------
+// Logs de acesso: todo /sincronizar de cada aparelho fica registrado
+// aqui (status, IP, quando) — dá pra ver no painel quem sincronizou,
+// quando, e se estava autorizado ou não naquele momento.
+// ---------------------------------------------------------------------
+admin.get('/logs', (req, res) => {
+  const deviceId = String(req.query.device_id || '').trim();
+  const limite = Math.min(Math.max(Number(req.query.limit) || 200, 1), 2000);
+
+  const linhas = deviceId
+    ? db.prepare('SELECT * FROM acessos WHERE device_id = ? ORDER BY id DESC LIMIT ?').all(deviceId, limite)
+    : db.prepare('SELECT * FROM acessos ORDER BY id DESC LIMIT ?').all(limite);
+
+  res.json(linhas);
+});
+
+// ---------------------------------------------------------------------
+// Upload de playlist M3U/M3U8 ou EPG XMLTV pelo painel — evita depender
+// de hospedar o arquivo em outro lugar pra colar a URL na config. O
+// arquivo enviado vira uma URL própria em /arquivos/<nome>.
+// ---------------------------------------------------------------------
+const EXTENSOES_PERMITIDAS = new Set(['.m3u', '.m3u8', '.xml']);
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const nome = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
+      cb(null, nome);
+    },
+  }),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB — folga pra playlists grandes, mas não ilimitado
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!EXTENSOES_PERMITIDAS.has(ext)) {
+      return cb(new Error('Extensão não permitida — envie .m3u, .m3u8 ou .xml'));
+    }
+    cb(null, true);
+  },
+});
+
+admin.post('/upload', (req, res) => {
+  upload.single('arquivo')(req, res, (erro) => {
+    if (erro) return res.status(400).json({ erro: erro.message });
+    if (!req.file) return res.status(400).json({ erro: 'nenhum arquivo enviado' });
+
+    const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    res.json({
+      ok: true,
+      url: `${base}/arquivos/${req.file.filename}`,
+      nome_original: req.file.originalname,
+      tamanho: req.file.size,
+    });
+  });
+});
 
 app.use('/admin/api', admin);
 
