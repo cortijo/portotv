@@ -2,9 +2,12 @@ package br.com.portonet.tv
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import coil3.load
@@ -48,8 +51,7 @@ class LockActivity : AppCompatActivity() {
     private fun tentarSincronizar() {
         if (tentando) return
         tentando = true
-        val status = findViewById<android.widget.TextView>(R.id.status)
-        status.setText(R.string.bloqueio_verificando)
+        mostrarAguardando()
 
         lifecycleScope.launch {
             when (val resultado = Provisioning.sincronizar(this@LockActivity)) {
@@ -61,14 +63,14 @@ class LockActivity : AppCompatActivity() {
                         return@launch
                     }
                     // Autorizado, mas playlist/EPG ainda não vieram — tenta de novo.
-                    status.setText(R.string.bloqueio_verificando)
+                    mostrarAguardando()
                     agendarNovaTentativa()
                 }
                 is Sincronizacao.NaoAutorizado -> {
                     if (resultado.mensagem != null) {
-                        status.text = resultado.mensagem
+                        mostrarBloqueado(resultado.mensagem)
                     } else {
-                        status.setText(R.string.bloqueio_verificando)
+                        mostrarAguardando()
                     }
                     agendarNovaTentativa()
                 }
@@ -77,12 +79,47 @@ class LockActivity : AppCompatActivity() {
                     // não deixar o aparelho preso na tela de bloqueio por uma
                     // instabilidade momentânea.
                     if (usarCacheSeDisponivel()) return@launch
-                    status.setText(R.string.bloqueio_erro_rede)
+                    mostrarAguardando(erroRede = true)
                     agendarNovaTentativa()
                 }
             }
             tentando = false
         }
+    }
+
+    /** Estado normal: aguardando autorização — spinner girando, instruções visíveis. */
+    private fun mostrarAguardando(erroRede: Boolean = false) {
+        findViewById<View>(R.id.progresso).visibility = View.VISIBLE
+        findViewById<View>(R.id.instrucao).visibility = View.VISIBLE
+        findViewById<View>(R.id.uuid).visibility = View.VISIBLE
+        val titulo = findViewById<TextView>(R.id.titulo)
+        titulo.setText(R.string.bloqueio_titulo)
+        titulo.setTextColor(getColor(R.color.portonet_azul_marinho))
+        val status = findViewById<TextView>(R.id.status)
+        status.setTypeface(null, Typeface.NORMAL)
+        status.textSize = 14f
+        status.setTextColor(getColor(R.color.portonet_cinza_texto))
+        status.setText(if (erroRede) R.string.bloqueio_erro_rede else R.string.bloqueio_verificando)
+    }
+
+    /**
+     * Aparelho bloqueado/revogado no painel — pára o spinner (não é mais uma
+     * espera, é um estado definitivo até o suporte agir) e mostra o motivo
+     * com destaque, sem a instrução de "informe este código" (que é só pro
+     * primeiro cadastro).
+     */
+    private fun mostrarBloqueado(mensagem: String) {
+        findViewById<View>(R.id.progresso).visibility = View.GONE
+        findViewById<View>(R.id.instrucao).visibility = View.GONE
+        findViewById<View>(R.id.uuid).visibility = View.GONE
+        val titulo = findViewById<TextView>(R.id.titulo)
+        titulo.setText(R.string.bloqueio_titulo_bloqueado)
+        titulo.setTextColor(getColor(R.color.portonet_vermelho))
+        val status = findViewById<TextView>(R.id.status)
+        status.setTypeface(null, Typeface.BOLD)
+        status.setTextColor(getColor(R.color.portonet_vermelho))
+        status.textSize = 18f
+        status.text = mensagem.ifBlank { getString(R.string.bloqueio_mensagem_padrao) }
     }
 
     private fun usarCacheSeDisponivel(): Boolean {

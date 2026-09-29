@@ -2,6 +2,8 @@
 <resources>
     <string name="app_name">Portonet TV</string>
     <string name="bloqueio_titulo">Aguardando autorização</string>
+    <string name="bloqueio_titulo_bloqueado">Acesso bloqueado</string>
+    <string name="bloqueio_mensagem_padrao">Equipamento bloqueado. Entre em contato com o suporte técnico.</string>
     <string name="bloqueio_instrucao">Informe este código ao suporte Portonet para liberar este aparelho:</string>
     <string name="bloqueio_verificando">Verificando…</string>
     <string name="bloqueio_erro_rede">Sem conexão com o servidor. Verifique a internet do aparelho.</string>

@@ -10,4 +10,5 @@
     <color name="branco">#FFFFFF</color>
     <color name="preto">#000000</color>
     <color name="overlay_video">#CC000000</color>
+    <color name="portonet_vermelho">#D32F2F</color>
 </resources>

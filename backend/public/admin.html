@@ -389,8 +389,38 @@ function mostrarPainel() {
   carregarEpgInputs();
   carregarAparelhos();
   carregarLogs();
+
+  // Continua reatualizando por conta própria (setInterval) como plano B,
+  // mas o /eventos (SSE) é quem dá a atualização instantânea de verdade —
+  // sem ele, uma mudança feita numa outra aba/pessoa só aparecia aqui
+  // depois de até 15s ou de um F5 manual.
   setInterval(carregarAparelhos, 15000);
   setInterval(carregarLogs, 15000);
+  setInterval(carregarCanais, 20000);
+  setInterval(carregarEpgInputs, 20000);
+  escutarEventos();
+}
+
+/**
+ * Assina o mesmo canal de eventos (SSE) que os aparelhos usam — qualquer
+ * mudança no catálogo (canal, fonte, associação de EPG) ou em um aparelho
+ * (autorizar/revogar/bloquear) atualiza a tabela certa aqui na hora, sem
+ * precisar de F5. Reconecta sozinho se a conexão cair.
+ */
+function escutarEventos() {
+  const es = new EventSource('/eventos');
+  es.onmessage = (ev) => {
+    if (ev.data === 'catalogo') {
+      carregarCanais();
+      carregarEpgInputs();
+    } else if (ev.data === 'dispositivos') {
+      carregarAparelhos();
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    setTimeout(escutarEventos, 5000);
+  };
 }
 
 function formatarData(iso) {
