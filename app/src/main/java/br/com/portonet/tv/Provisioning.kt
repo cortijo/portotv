@@ -3,6 +3,7 @@ package br.com.portonet.tv
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.wifi.WifiManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -57,9 +58,13 @@ object Provisioning {
     suspend fun sincronizar(context: Context): Sincronizacao = withContext(Dispatchers.IO) {
         val deviceId = DeviceId.get(context)
         val rede = tipoDeRede(context)
+        val sinal = if (rede == "wifi") sinalWifi(context) else null
+        val parametrosSinal = sinal?.let { "&sinal_dbm=${it.dbm}&sinal_nivel=${it.nivel}" } ?: ""
+        val cpuPct = cpuPercentual()
+        val parametrosCpu = cpuPct?.let { "&cpu_pct=$it" } ?: ""
         val corpo = runCatching {
             val request = Request.Builder()
-                .url("$BASE_URL/sincronizar?device_id=$deviceId&rede=$rede")
+                .url("$BASE_URL/sincronizar?device_id=$deviceId&rede=$rede$parametrosSinal$parametrosCpu")
                 .header("User-Agent", "PortonetTV/1.0")
                 .build()
             client.newCall(request).execute().use { resposta ->
@@ -98,6 +103,31 @@ object Provisioning {
             else -> "desconhecida"
         }
     }.getOrDefault("desconhecida")
+
+    private data class SinalWifi(val dbm: Int, val nivel: Int)
+
+    /** Força do sinal Wi-Fi atual: dBm bruto + nível 0-4, só quando conectado por Wi-Fi. */
+    @Suppress("DEPRECATION")
+    private fun sinalWifi(context: Context): SinalWifi? = runCatching {
+        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return null
+        val rssi = wm.connectionInfo?.rssi ?: return null
+        if (rssi == 0 || rssi == Int.MIN_VALUE) return null // sem leitura válida
+        SinalWifi(dbm = rssi, nivel = WifiManager.calculateSignalLevel(rssi, 5))
+    }.getOrNull()
+
+    /**
+     * Uso de processamento do aparelho, normalizado 0-100 — lido de
+     * `/proc/loadavg` (carga média de 1 min, dividida pelo nº de núcleos),
+     * sem depender de duas amostragens no tempo. Só informativo, pro
+     * suporte perceber um TV Box sobrecarregado; se não der pra ler (ROM
+     * restringindo acesso a /proc), simplesmente não envia.
+     */
+    private fun cpuPercentual(): Int? = runCatching {
+        val primeiraColuna = File("/proc/loadavg").readText().trim().substringBefore(' ')
+        val cargaMediaUmMin = primeiraColuna.toFloat()
+        val nucleos = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        ((cargaMediaUmMin / nucleos) * 100).toInt().coerceIn(0, 100)
+    }.getOrNull()
 
     /** Última sincronização autorizada com sucesso, sem tocar na rede. */
     fun cache(context: Context): Sincronizacao.Autorizado? = runCatching {

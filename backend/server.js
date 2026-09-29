@@ -68,15 +68,25 @@ app.get('/sincronizar', (req, res) => {
   const redeInformada = String(req.query.rede || '').trim().toLowerCase();
   const rede = REDES_VALIDAS.has(redeInformada) ? redeInformada : 'desconhecida';
 
+  // Sinal Wi-Fi só faz sentido quando a rede informada é wifi — em qualquer
+  // outro caso ignora, mesmo que os parâmetros venham preenchidos.
+  const sinalDbm = rede === 'wifi' ? Number(req.query.sinal_dbm) : null;
+  const sinalNivel = rede === 'wifi' ? Number(req.query.sinal_nivel) : null;
+  const sinalDbmValido = Number.isFinite(sinalDbm) ? sinalDbm : null;
+  const sinalNivelValido = Number.isFinite(sinalNivel) ? Math.min(Math.max(sinalNivel, 0), 4) : null;
+
+  const cpuPctBruto = Number(req.query.cpu_pct);
+  const cpuPctValido = Number.isFinite(cpuPctBruto) ? Math.min(Math.max(Math.round(cpuPctBruto), 0), 100) : null;
+
   const existente = db.prepare('SELECT * FROM devices WHERE device_id = ?').get(deviceId);
   if (existente) {
     db.prepare(
-      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ? WHERE device_id = ?'
-    ).run(agoraISO(), rede, deviceId);
+      'UPDATE devices SET ultima_sincronizacao = ?, total_sincronizacoes = total_sincronizacoes + 1, rede = ?, sinal_dbm = ?, sinal_nivel = ?, cpu_pct = ? WHERE device_id = ?'
+    ).run(agoraISO(), rede, sinalDbmValido, sinalNivelValido, cpuPctValido, deviceId);
   } else {
     db.prepare(
-      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede) VALUES (?, 0, ?, ?, 1, ?)'
-    ).run(deviceId, agoraISO(), agoraISO(), rede);
+      'INSERT INTO devices (device_id, autorizado, primeira_vez, ultima_sincronizacao, total_sincronizacoes, rede, sinal_dbm, sinal_nivel, cpu_pct) VALUES (?, 0, ?, ?, 1, ?, ?, ?, ?)'
+    ).run(deviceId, agoraISO(), agoraISO(), rede, sinalDbmValido, sinalNivelValido, cpuPctValido);
   }
 
   function finalizar(status, extra) {

@@ -278,6 +278,7 @@
             <th>Status</th>
             <th>Rede</th>
             <th>Latência</th>
+            <th>Processamento</th>
             <th>Última sincronização</th>
             <th>Ações</th>
           </tr>
@@ -625,6 +626,18 @@ function enviarArquivoGenerico(inputEl, msgElId, aoConcluir) {
 
 const NOMES_REDE = { wifi: 'Wi-Fi', ethernet: 'Cabo', celular: 'Dados móveis', desconhecida: '—' };
 
+function textoSinal(d) {
+  if (d.rede !== 'wifi' || d.sinal_nivel == null) return '';
+  const barras = '▂▄▆█'.slice(0, 4).split('').map((c, i) => (i < d.sinal_nivel ? c : '·')).join('');
+  return ` <span class="muted" title="${d.sinal_dbm} dBm">${barras}</span>`;
+}
+
+function textoCpu(pct) {
+  if (pct == null) return '—';
+  const cor = pct >= 85 ? 'var(--vermelho)' : pct >= 60 ? 'var(--amarelo)' : 'var(--verde)';
+  return `<span style="color:${cor}">${pct}%</span>`;
+}
+
 function statusAparelho(d) {
   if (d.mensagem_bloqueio) return { classe: 'bloqueado', texto: 'Bloqueado' };
   if (!d.autorizado) return { classe: 'pendente', texto: 'Aguardando' };
@@ -650,8 +663,9 @@ function carregarAparelhos() {
             onchange="salvarApelido('${d.device_id}', this.value)" />
         </td>
         <td><span class="badge ${st.classe}" title="${d.mensagem_bloqueio ? escaparHtml(d.mensagem_bloqueio) : ''}">${st.texto}</span></td>
-        <td class="net">${NOMES_REDE[d.rede] || '—'}</td>
+        <td class="net">${NOMES_REDE[d.rede] || '—'}${textoSinal(d)}</td>
         <td class="net">${d.latencia_ms != null ? d.latencia_ms + ' ms' : '—'}</td>
+        <td class="net">${textoCpu(d.cpu_pct)}</td>
         <td>${formatarData(d.ultima_sincronizacao)}</td>
         <td class="acoes">
           ${d.autorizado

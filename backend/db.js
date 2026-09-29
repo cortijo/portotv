@@ -92,6 +92,9 @@ function garantirColuna(tabela, coluna, definicao) {
 garantirColuna('devices', 'rede', 'TEXT');
 garantirColuna('devices', 'latencia_ms', 'INTEGER');
 garantirColuna('devices', 'mensagem_bloqueio', 'TEXT');
+garantirColuna('devices', 'sinal_dbm', 'INTEGER');
+garantirColuna('devices', 'sinal_nivel', 'INTEGER');
+garantirColuna('devices', 'cpu_pct', 'INTEGER');
 
 // Configuração padrão na primeira execução — o time da Portonet troca depois
 // pelo painel admin (URLs reais da playlist e do EPG).
