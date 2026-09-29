@@ -220,19 +220,52 @@
     </LinearLayout>
 
     <!-- Lista lateral de canais — seta esquerda abre, VOLTAR fecha. -->
-    <FrameLayout
+    <LinearLayout
         android:id="@+id/listaPainel"
         android:layout_width="420dp"
         android:layout_height="match_parent"
         android:background="@color/overlay_video"
+        android:orientation="vertical"
         android:visibility="gone">
+
+        <!-- Alterna a lista entre "todos os canais" e "só os favoritos". -->
+        <LinearLayout
+            android:id="@+id/filtroFavoritos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/fundo_item_canal"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="14dp">
+
+            <ImageView
+                android:id="@+id/filtroFavoritosIcone"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_favorito_off" />
+
+            <TextView
+                android:id="@+id/filtroFavoritosTexto"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="@string/mostrar_somente_favoritos"
+                android:textColor="@color/branco"
+                android:textSize="14sp" />
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/listaCanais"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:clipToPadding="false"
             android:paddingVertical="16dp" />
-    </FrameLayout>
+    </LinearLayout>
 
 </FrameLayout>

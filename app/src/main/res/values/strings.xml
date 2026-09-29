@@ -9,4 +9,6 @@
     <string name="bloqueio_erro_rede">Sem conexão com o servidor. Verifique a internet do aparelho.</string>
     <string name="canal_em_manutencao">Esse Canal está em Manutenção</string>
     <string name="favoritar_canal">Favoritar canal</string>
+    <string name="mostrar_somente_favoritos">Somente favoritos</string>
+    <string name="mostrar_todos_canais">Todos os canais</string>
 </resources>

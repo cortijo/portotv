@@ -56,7 +56,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val relogio = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
-    private val adapter = ChannelAdapter(onPick = { indice -> sintonizar(indice, fecharLista = true) })
+    private val adapter = ChannelAdapter(this, onPick = { indice -> sintonizar(indice, fecharLista = true) })
 
     private var atual = 0
     private var fonteIndice = 0
@@ -109,6 +109,7 @@ class PlayerActivity : AppCompatActivity() {
         listaCanais = findViewById(R.id.listaCanais)
         listaCanais.layoutManager = LinearLayoutManager(this)
         listaCanais.adapter = adapter
+        configurarFiltroFavoritos()
 
         if (!ContentRepository.temConteudo) {
             // Não deveria acontecer — o LockActivity só abre esta tela com
@@ -333,13 +334,37 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun abrirListaCanais() {
         listaPainel.visibility = View.VISIBLE
-        listaCanais.scrollToPosition(listaFoco)
+        // Com o filtro "somente favoritos" ligado, a posição na tela pode não
+        // ser a mesma do índice na lista mestra — e o canal atual pode nem
+        // aparecer (não é favorito). Nesse caso só não rola pra lugar nenhum.
+        val posicao = adapter.posicaoExibidaDoIndice(listaFoco)
+        if (posicao >= 0) listaCanais.scrollToPosition(posicao)
         handler.removeCallbacks(esconderBanner)
         banner.visibility = View.GONE
     }
 
     private fun fecharListaCanais() {
         listaPainel.visibility = View.GONE
+    }
+
+    private fun configurarFiltroFavoritos() {
+        val linha = findViewById<View>(R.id.filtroFavoritos)
+        atualizarFiltroFavoritosUi()
+        linha.setOnClickListener {
+            adapter.alternarSomenteFavoritos()
+            atualizarFiltroFavoritosUi()
+            val posicao = adapter.posicaoExibidaDoIndice(listaFoco)
+            if (posicao >= 0) listaCanais.scrollToPosition(posicao)
+        }
+    }
+
+    private fun atualizarFiltroFavoritosUi() {
+        val ligado = adapter.exibindoSomenteFavoritos
+        findViewById<android.widget.ImageView>(R.id.filtroFavoritosIcone).setImageResource(
+            if (ligado) R.drawable.ic_favorito_on else R.drawable.ic_favorito_off
+        )
+        findViewById<TextView>(R.id.filtroFavoritosTexto).text =
+            getString(if (ligado) R.string.mostrar_todos_canais else R.string.mostrar_somente_favoritos)
     }
 
     // --- Numpad --------------------------------------------------------
